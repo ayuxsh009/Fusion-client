@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   Table,
   Container,
@@ -13,7 +12,12 @@ import {
   Select,
   ScrollArea, // Import ScrollArea from Mantine
 } from "@mantine/core";
-import { viewRegistrationRequestsRoute } from "../routes";
+import { notifications } from "@mantine/notifications";
+import {
+  fetchRegistrationRequests,
+  getApiErrorMessage,
+  updateRegistrationRequest,
+} from "../api";
 
 const tableHeaders = [
   "Student ID",
@@ -33,6 +37,11 @@ function ViewRegistration() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const normalizeStatus = (status) => String(status || "").toLowerCase();
+
+  const isAcceptedStatus = (status) =>
+    ["accept", "accepted", "2"].includes(normalizeStatus(status));
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -42,9 +51,7 @@ function ViewRegistration() {
           return;
         }
 
-        const response = await axios.get(viewRegistrationRequestsRoute, {
-          headers: { Authorization: `Token ${token}` },
-        });
+        const response = await fetchRegistrationRequests(token);
 
         if (response.data && response.data.payload) {
           setRegistrationData(response.data.payload);
@@ -81,22 +88,27 @@ function ViewRegistration() {
         mess_option: item.mess_option,
       };
 
-      const response = await axios.put(
-        viewRegistrationRequestsRoute,
-        updatedData,
-        {
-          headers: { Authorization: `Token ${token}` },
-        },
-      );
+      const response = await updateRegistrationRequest(updatedData, token);
 
       if (response.status === 200) {
         setRegistrationData((prevData) =>
           prevData.filter((entry) => entry.id !== item.id),
         );
+        notifications.show({
+          title: "Success",
+          message: "Registration request updated successfully",
+          color: "green",
+        });
       }
     } catch (errors) {
-      window.alert("Update the mess option before accepting.");
-      // setError("Failed to update registration status.");
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(
+          errors,
+          "Update the mess option before accepting.",
+        ),
+        color: "red",
+      });
     }
   };
 
@@ -160,7 +172,7 @@ function ViewRegistration() {
               <Table.Tbody>
                 {registrationData.length > 0 ? (
                   registrationData
-                    .filter((item) => item.status !== "accept") // Filter out accepted rows
+                    .filter((item) => !isAcceptedStatus(item.status))
                     .map((item) => (
                       <Table.Tr key={item.id}>
                         <Table.Td style={{ padding: "4px", fontSize: "12px" }}>

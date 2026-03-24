@@ -2,131 +2,97 @@ import React, { useState } from "react";
 import {
   TextInput,
   Button,
-  Container,
-  Title,
-  Paper,
+  Card,
+  Text,
   FileInput,
   Grid,
   Space,
-} from "@mantine/core"; // Import Mantine components
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 
 function BillBase() {
-  const [amount, setAmount] = useState(""); // State for base amount
-  const [file, setFile] = useState(null); // State for file upload
+  const [amount, setAmount] = useState("");
+  const [file, setFile] = useState(null);
 
-  // Function to handle the update of the base amount (for demo purposes)
   const updateBaseAmount = (event) => {
     event.preventDefault();
-    alert(`Updated base amount to: Rs. ${amount}`); // Alert to simulate update
+    notifications.show({
+      title: "Success",
+      message: `Updated base amount to: Rs. ${amount}`,
+      color: "green",
+    });
   };
 
-  // Function to handle the file upload (for demo purposes)
   const uploadFile = (event) => {
     event.preventDefault();
     if (file) {
-      alert(`File uploaded: ${file.name}`);
+      notifications.show({
+        title: "Success",
+        message: `File uploaded: ${file.name}`,
+        color: "green",
+      });
     } else {
-      alert("Please select a file to upload.");
+      notifications.show({
+        title: "Error",
+        message: "Please select a file to upload.",
+        color: "red",
+      });
     }
   };
 
   return (
-    <Container
-      size="lg"
-      style={{
-        display: "flex",
-        justifyContent: "center", // Centers the form horizontally
-        marginTop: "40px",
-      }}
-    >
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          width: "100%",
-          minWidth: "75rem", // Set the min-width to 75rem
-          padding: "2rem", // Add padding for better spacing
-        }}
-      >
-        <Title order={2} align="center" mb="xl" style={{ color: "#1c7ed6" }}>
-          Monthly Bill Base
-        </Title>
-        {/* Update Base Amount Form */}
-        <form onSubmit={updateBaseAmount}>
-          <Grid>
-            <Grid.Col span={8}>
-              <TextInput
-                label="Current Base Amount"
-                placeholder="Enter the new base amount"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                type="number" // Numeric input
-                required
-                radius="md"
-                size="md"
-                style={{ marginTop: "20px" }} // Increased margin top
-                labelStyle={{ marginBottom: "10px" }} // Add space between label and input
-              />
-            </Grid.Col>
-            <Grid.Col span={4}>
-              <Button
-                type="submit"
-                style={{
-                  width: "200px", // Reduced width of the button
-                  marginTop: "47px", // Margin top for button to align with input
-                  backgroundColor: "#1c7ed6",
-                  color: "white",
-                  fontWeight: "bold",
-                  marginLeft: "30px",
-                }}
-              >
-                Update Base Amount
-              </Button>
-            </Grid.Col>
-          </Grid>
-        </form>
-        <Space h="xl" /> {/* Space between forms */}
-        <hr />
-        <Space h="xl" /> {/* Space between forms */}
-        {/* Upload Monthly Bill Form */}
-        <form onSubmit={uploadFile}>
-          <Grid>
-            <Grid.Col span={8}>
-              <FileInput
-                label="Upload Monthly Bill"
-                placeholder="Choose Excel file"
-                value={file}
-                onChange={setFile}
-                accept=".xlsx,.xls"
-                required
-                styles={{ input: { width: "100%" } }}
-                radius="md"
-                size="md"
-                style={{ marginTop: "20px" }} // Increased margin top
-                labelStyle={{ marginBottom: "10px" }} // Add space between label and input
-              />
-            </Grid.Col>
-            <Grid.Col span={4}>
-              <Button
-                type="submit"
-                style={{
-                  width: "200px", // Reduced width of the button
-                  marginTop: "47px", // Margin top for button to align with input
-                  backgroundColor: "#1c7ed6",
-                  color: "white",
-                  fontWeight: "bold",
-                  marginLeft: "30px",
-                }}
-              >
-                Update Bills
-              </Button>
-            </Grid.Col>
-          </Grid>
-        </form>
-      </Paper>
-    </Container>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Monthly Bill Base
+      </Text>
+      {/* Update Base Amount Form */}
+      <form onSubmit={updateBaseAmount}>
+        <Grid align="flex-end">
+          <Grid.Col span={8}>
+            <TextInput
+              label="Current Base Amount"
+              placeholder="Enter the new base amount"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              type="number"
+              required
+              radius="md"
+              size="md"
+            />
+          </Grid.Col>
+          <Grid.Col span={4}>
+            <Button type="submit" color="blue">
+              Update Base Amount
+            </Button>
+          </Grid.Col>
+        </Grid>
+      </form>
+      <Space h="xl" />
+      <hr />
+      <Space h="xl" />
+      {/* Upload Monthly Bill Form */}
+      <form onSubmit={uploadFile}>
+        <Grid align="flex-end">
+          <Grid.Col span={8}>
+            <FileInput
+              label="Upload Monthly Bill"
+              placeholder="Choose Excel file"
+              value={file}
+              onChange={setFile}
+              accept=".xlsx,.xls"
+              required
+              radius="md"
+              size="md"
+            />
+          </Grid.Col>
+          <Grid.Col span={4}>
+            <Button type="submit" color="blue">
+              Update Bills
+            </Button>
+          </Grid.Col>
+        </Grid>
+      </form>
+    </Card>
   );
 }
 

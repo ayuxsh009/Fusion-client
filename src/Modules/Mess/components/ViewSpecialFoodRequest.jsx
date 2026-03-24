@@ -1,16 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  Container,
-  Paper,
-  Title,
-  Button,
-  Flex,
-  Loader,
-  Alert,
-} from "@mantine/core";
-import axios from "axios";
-import { specialFoodRequestRoute } from "../routes";
+import { Table, Card, Text, Button, Flex, Loader, Alert } from "@mantine/core";
+import { fetchSpecialFoodRequests, updateSpecialFoodRequest } from "../api";
 
 const tableHeader = [
   "Date",
@@ -37,11 +27,7 @@ function ViewSpecialFoodRequest() {
         return;
       }
 
-      const response = await axios.get(specialFoodRequestRoute, {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
-      });
+      const response = await fetchSpecialFoodRequests(token);
       console.log("Response:", response.data.payload);
       if (response.data && response.data.payload) {
         const filteredData = response.data.payload.filter(
@@ -84,11 +70,7 @@ function ViewSpecialFoodRequest() {
         status,
       };
 
-      const response = await axios.put(specialFoodRequestRoute, payload, {
-        headers: {
-          Authorization: `Token ${token}`,
-        },
-      });
+      const response = await updateSpecialFoodRequest(payload, token);
 
       if (response.data.status === 200) {
         // Remove the request from table after updating status
@@ -143,27 +125,27 @@ function ViewSpecialFoodRequest() {
     ));
 
   return (
-    <Container size="lg" mt={30} miw="75rem">
-      <Paper shadow="md" radius="md" p="lg" withBorder>
-        <Flex justify="space-between" align="center" mb="lg">
-          <Title order={2} c="#1c7ed6">
-            View Special Food Requests
-          </Title>
-          <Button onClick={fetchData} variant="light" color="blue" size="sm">
-            Refresh
-          </Button>
-        </Flex>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Flex justify="space-between" align="center" mb="lg">
+        <Text size="lg" fw={700} c="#3B82F6">
+          View Special Food Requests
+        </Text>
+        <Button onClick={fetchData} variant="light" color="blue" size="sm">
+          Refresh
+        </Button>
+      </Flex>
 
-        {loading ? (
-          <Flex justify="center" align="center" style={{ minHeight: "200px" }}>
-            <Loader size="xl" />
-          </Flex>
-        ) : error ? (
-          <Alert color="red" title="Error" mb="lg">
-            {error}
-          </Alert>
-        ) : (
-          <Table striped highlightOnHover withBorder withColumnBorders>
+      {loading ? (
+        <Flex justify="center" align="center" style={{ minHeight: "200px" }}>
+          <Loader size="xl" />
+        </Flex>
+      ) : error ? (
+        <Alert color="red" title="Error" mb="lg">
+          {error}
+        </Alert>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <Table striped highlightOnHover withColumnBorders>
             <Table.Thead>
               <Table.Tr>{renderHeader(tableHeader)}</Table.Tr>
             </Table.Thead>
@@ -183,9 +165,9 @@ function ViewSpecialFoodRequest() {
               )}
             </Table.Tbody>
           </Table>
-        )}
-      </Paper>
-    </Container>
+        </div>
+      )}
+    </Card>
   );
 }
 

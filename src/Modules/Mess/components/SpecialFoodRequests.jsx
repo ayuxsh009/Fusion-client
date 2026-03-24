@@ -5,25 +5,8 @@ import SpecialFoodStatus from "./SpecialFoodStatus";
 
 function SpecialFoodRequests() {
   return (
-    <Container
-      size="lg"
-      style={{
-        display: "flex",
-        justifyContent: "center", // Centers the form horizontally
-        marginTop: "40px",
-      }}
-    >
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          width: "100%",
-          minWidth: "80rem", // Set the min-width to 75rem
-          padding: "2rem", // Add padding for better spacing
-        }}
-      >
+    <Container fluid mt="lg">
+      <Paper shadow="md" radius="md" p="xl" withBorder>
         <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
           Special Food Requests
         </Title>

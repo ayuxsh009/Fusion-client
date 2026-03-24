@@ -3,7 +3,6 @@ import { CaretCircleLeft, CaretCircleRight } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import classes from "../styles/messModule.module.css";
 
-import UpdateBill from "./UpdateBills.jsx";
 import ViewFeedback from "./ViewFeedback.jsx";
 
 function Feedback() {
@@ -30,7 +29,7 @@ function Feedback() {
       case "0":
         return <ViewFeedback />;
       case "1":
-        return <UpdateBill />;
+        return <ViewFeedback />;
       default:
         return <Loader />;
     }

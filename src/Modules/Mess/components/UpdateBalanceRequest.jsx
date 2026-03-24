@@ -3,28 +3,25 @@ import {
   TextInput,
   NumberInput,
   Button,
-  Container,
-  Title,
-  Paper,
+  Card,
+  Text,
   Space,
   FileInput,
   Grid,
-} from "@mantine/core"; // Import Mantine components
-import { DateInput } from "@mantine/dates";
+} from "@mantine/core";
 import { useSelector } from "react-redux";
-import { User } from "@phosphor-icons/react"; // Import Phosphor Icons
-import "@mantine/dates/styles.css"; // Import Mantine DateInput styles
+import { User } from "@phosphor-icons/react";
+import { notifications } from "@mantine/notifications";
 import dayjs from "dayjs";
-import axios from "axios";
-import { updateBalanceRequestRoute } from "../routes";
+import { submitBalanceUpdateRequest, getApiErrorMessage } from "../api";
 
 function UpdateBalanceRequest() {
   const student_id = useSelector((state) => state.user.roll_no);
   const [image, setImage] = useState(null);
-  const [paymentDate, setPaymentDate] = useState(null);
+  const [paymentDate, setPaymentDate] = useState("");
   const [transactionNo, setTransactionNo] = useState("");
   const [amount, setAmount] = useState(null);
-  const today = new Date();
+  const todayISO = new Date().toISOString().split("T")[0];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -39,140 +36,108 @@ function UpdateBalanceRequest() {
     formData.append("student_id", student_id);
 
     try {
-      const response = await axios.post(updateBalanceRequestRoute, formData, {
-        headers: {
-          Authorization: `Token ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const response = await submitBalanceUpdateRequest(formData, token);
       console.log("Response:", response.data);
 
       setTransactionNo("");
       setAmount(null);
-      setPaymentDate(null);
+      setPaymentDate("");
       setImage(null);
       if (response.status === 200) {
-        alert("Update Balance request submitted successfully!");
+        notifications.show({
+          title: "Success",
+          message: "Update Balance request submitted successfully!",
+          color: "green",
+        });
       }
     } catch (error) {
       console.error("Error posting data:", error);
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(error, "Failed to submit request"),
+        color: "red",
+      });
     }
   };
 
   return (
-    <Container
-      size="lg"
-      style={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        marginTop: "40px",
-      }}
-    >
-      <Paper
-        shadow="xl"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          minWidth: "75rem",
-          width: "100%",
-          padding: "30px",
-          margin: "auto",
-        }}
-      >
-        <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
-          Update Balance Request
-        </Title>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Update Balance Request
+      </Text>
 
-        <form onSubmit={handleSubmit}>
-          {/* Transaction Number input */}
-          <TextInput
-            label="Transaction No."
-            placeholder="Transaction No."
-            id="TxnNo"
-            required
-            radius="md"
-            size="md"
-            icon={<User size={20} />}
-            labelProps={{ style: { marginBottom: "10px" } }}
-            mt="xl"
-            mb="md"
-            value={transactionNo}
-            onChange={(event) => setTransactionNo(event.currentTarget.value)}
-          />
-          <Grid grow>
-            <Grid.Col span={6}>
-              {/* Amount input */}
-              <NumberInput
-                label="Amount"
-                placeholder="Balance Amount"
-                id="amount"
-                required
-                radius="md"
-                size="md"
-                labelProps={{ style: { marginBottom: "10px" } }}
-                min={0}
-                step={100}
-                mb="lg"
-                value={amount}
-                onChange={(value) => setAmount(value)}
-              />
-            </Grid.Col>
-            <Grid.Col span={6}>
-              {/* Image input */}
-              <FileInput
-                label="Image"
-                placeholder="Choose file"
-                value={image}
-                onChange={setImage}
-                accept="image/*"
-                required
-                size="md"
-                labelProps={{ style: { marginBottom: "10px" } }}
-                mb="lg"
-              />
-            </Grid.Col>
-          </Grid>
+      <form onSubmit={handleSubmit}>
+        {/* Transaction Number input */}
+        <TextInput
+          label="Transaction No."
+          placeholder="Transaction No."
+          id="TxnNo"
+          required
+          radius="md"
+          size="md"
+          leftSection={<User size={20} />}
+          labelProps={{ style: { marginBottom: "10px" } }}
+          mt="xl"
+          mb="md"
+          value={transactionNo}
+          onChange={(event) => setTransactionNo(event.currentTarget.value)}
+        />
+        <Grid grow>
+          <Grid.Col span={6}>
+            {/* Amount input */}
+            <NumberInput
+              label="Amount"
+              placeholder="Balance Amount"
+              id="amount"
+              required
+              radius="md"
+              size="md"
+              labelProps={{ style: { marginBottom: "10px" } }}
+              min={0}
+              step={100}
+              mb="lg"
+              value={amount}
+              onChange={(value) => setAmount(value)}
+            />
+          </Grid.Col>
+          <Grid.Col span={6}>
+            {/* Image input */}
+            <FileInput
+              label="Image"
+              placeholder="Choose file"
+              value={image}
+              onChange={setImage}
+              accept="image/*"
+              required
+              size="md"
+              labelProps={{ style: { marginBottom: "10px" } }}
+              mb="lg"
+            />
+          </Grid.Col>
+        </Grid>
 
-          {/* Payment Date select */}
-          <DateInput
-            label="Payment Date"
-            placeholder="MM/DD/YYYY"
-            maxDate={today}
-            value={paymentDate}
-            onChange={setPaymentDate}
-            required
-            radius="md"
-            size="md"
-            mb="lg"
-            labelProps={{ style: { marginBottom: "10px" } }}
-            styles={(theme) => ({
-              dropdown: {
-                backgroundColor: theme.colors.gray[0],
-                boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-              },
-              day: {
-                "&[data-selected]": {
-                  backgroundColor: theme.colors.blue[6],
-                },
-                "&[data-today]": {
-                  backgroundColor: theme.colors.gray[2],
-                  fontWeight: "bold",
-                },
-              },
-            })}
-          />
-          <Space h="xl" />
+        {/* Payment Date select */}
+        <TextInput
+          label="Payment Date"
+          placeholder="YYYY-MM-DD"
+          type="date"
+          max={todayISO}
+          value={paymentDate}
+          onChange={(event) => setPaymentDate(event.currentTarget.value)}
+          required
+          radius="md"
+          size="md"
+          mb="lg"
+          labelProps={{ style: { marginBottom: "10px" } }}
+        />
+        <Space h="xl" />
 
-          {/* Submit button */}
-          <Button type="submit" fullWidth size="md" radius="md" color="blue">
-            Update
-          </Button>
-        </form>
-      </Paper>
-      <Space h="xl" />
-    </Container>
+        {/* Submit button */}
+        <Button type="submit" fullWidth size="md" radius="md" color="blue">
+          Update
+        </Button>
+      </form>
+    </Card>
   );
 }
 

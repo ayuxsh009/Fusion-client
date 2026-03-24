@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Table, Container, Paper, Title, Button, Flex } from "@mantine/core";
-import * as PhosphorIcons from "@phosphor-icons/react";
-import { feedbackRoute } from "../routes";
+import { Table, Card, Text, Button, Flex } from "@mantine/core";
+import { deleteFeedback, fetchFeedbackList } from "../api";
 
 const tableHeader = [
   "Date",
@@ -13,19 +12,13 @@ const tableHeader = [
 ];
 
 function ViewFeedback() {
-  const [activeTab, setActiveTab] = useState("Food");
+  const [activeTab, setActiveTab] = useState("food");
   const [feedbackData, setFeedbackData] = useState([]);
   const authToken = localStorage.getItem("authToken");
 
   useEffect(() => {
-    fetch(feedbackRoute, {
-      method: "GET",
-      headers: {
-        Authorization: `Token ${authToken}`,
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => response.json())
+    fetchFeedbackList(authToken)
+      .then((response) => response.data)
       .then((data) => {
         setFeedbackData(
           data.payload.map((feedback) => ({
@@ -40,22 +33,18 @@ function ViewFeedback() {
   }, [authToken]);
 
   const markAsRead = (index, feedback) => {
-    fetch(feedbackRoute, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Token ${authToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    deleteFeedback(
+      {
         student_id: feedback.student_id,
         mess: feedback.mess,
         feedback_type: feedback.feedback_type,
         description: feedback.description,
         fdate: feedback.fdate,
-      }),
-    })
+      },
+      authToken,
+    )
       .then((response) => {
-        if (response.ok) {
+        if (response.status === 200) {
           // Update the status in the state instead of removing the item
           setFeedbackData((prevData) =>
             prevData.map((item, i) =>
@@ -108,57 +97,53 @@ function ViewFeedback() {
   };
 
   return (
-    <Container size="lg" mt={30} miw="75rem">
-      <Paper shadow="md" radius="md" p="lg" withBorder>
-        <Title order={2} align="center" mb="lg" c="#1c7ed6">
-          View Feedback
-        </Title>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        View Feedback
+      </Text>
 
-        {/* Tabs for filtering feedback */}
-        <Flex justify="center" align="center" mb={30} gap={20}>
-          <Button
-            onClick={() => setActiveTab("Food")}
-            leftSection={<PhosphorIcons.ForkKnife size={20} />}
-            variant={activeTab === "Food" ? "filled" : "outline"}
-            size="xs"
-          >
-            Food
-          </Button>
-          <Button
-            onClick={() => setActiveTab("Cleanliness")}
-            leftSection={<PhosphorIcons.Broom size={20} />}
-            variant={activeTab === "Cleanliness" ? "filled" : "outline"}
-            size="xs"
-          >
-            Cleanliness
-          </Button>
-          <Button
-            onClick={() => setActiveTab("Maintenance")}
-            leftSection={<PhosphorIcons.Wrench size={20} />}
-            variant={activeTab === "Maintenance" ? "filled" : "outline"}
-            size="xs"
-          >
-            Maintenance
-          </Button>
-          <Button
-            onClick={() => setActiveTab("Others")}
-            leftSection={<PhosphorIcons.ChatText size={20} />}
-            variant={activeTab === "Others" ? "filled" : "outline"}
-            size="xs"
-          >
-            Others
-          </Button>
-        </Flex>
+      {/* Tabs for filtering feedback */}
+      <Flex justify="center" align="center" mb={30} gap={20}>
+        <Button
+          onClick={() => setActiveTab("food")}
+          variant={activeTab === "food" ? "filled" : "outline"}
+          size="xs"
+        >
+          Food
+        </Button>
+        <Button
+          onClick={() => setActiveTab("cleanliness")}
+          variant={activeTab === "cleanliness" ? "filled" : "outline"}
+          size="xs"
+        >
+          Cleanliness
+        </Button>
+        <Button
+          onClick={() => setActiveTab("maintenance")}
+          variant={activeTab === "maintenance" ? "filled" : "outline"}
+          size="xs"
+        >
+          Maintenance
+        </Button>
+        <Button
+          onClick={() => setActiveTab("others")}
+          variant={activeTab === "others" ? "filled" : "outline"}
+          size="xs"
+        >
+          Others
+        </Button>
+      </Flex>
 
-        {/* Feedback Table */}
+      {/* Feedback Table */}
+      <div style={{ overflowX: "auto" }}>
         <Table striped highlightOnHover withColumnBorders>
           <Table.Thead>
             <Table.Tr>{renderHeader(tableHeader)}</Table.Tr>
           </Table.Thead>
           <Table.Tbody>{renderRows()}</Table.Tbody>
         </Table>
-      </Paper>
-    </Container>
+      </div>
+    </Card>
   );
 }
 

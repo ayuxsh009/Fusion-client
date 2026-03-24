@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { DateInput } from "@mantine/dates";
 import {
   Button,
   Container,
@@ -8,21 +7,30 @@ import {
   Space,
   Notification,
   Group,
+  TextInput,
 } from "@mantine/core";
-import "@mantine/dates/styles.css"; // Import Mantine DateInput styles
-import dayjs from "dayjs"; // Day.js for locale support
-import axios from "axios";
 import { notifications } from "@mantine/notifications";
-import { updateSemDatesRoute } from "../routes";
+import { updateSemesterDates, getApiErrorMessage } from "../api";
 
 function DateSelectionForm() {
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const todayISO = new Date().toISOString().split("T")[0];
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!startDate || !endDate) {
+      notifications.show({
+        title: "Failed",
+        message: "Both dates are required",
+        color: "red",
+        position: "top-center",
+      });
+      return;
+    }
 
     if (endDate <= startDate) {
       notifications.show({
@@ -39,18 +47,13 @@ function DateSelectionForm() {
 
       const token = localStorage.getItem("authToken");
 
-      const response = await axios.post(
-        updateSemDatesRoute,
+      const response = await updateSemesterDates(
         {
           sem: "2024",
-          start_reg: dayjs(startDate).format("YYYY-MM-DD"),
-          end_reg: dayjs(endDate).format("YYYY-MM-DD"),
+          start_reg: startDate,
+          end_reg: endDate,
         },
-        {
-          headers: {
-            Authorization: `Token ${token}`,
-          },
-        },
+        token,
       );
 
       if (response.status === 200) {
@@ -60,15 +63,18 @@ function DateSelectionForm() {
           color: "green",
           position: "top-center",
         });
-        setStartDate(null);
-        setEndDate(null);
+        setStartDate("");
+        setEndDate("");
       }
     } catch (err) {
-      console.error("Server response:", error.response.data);
+      console.error("Server response:", err.response?.data);
 
       notifications.show({
         title: "Error",
-        message: "Something went wrong. Please try again later.",
+        message: getApiErrorMessage(
+          err,
+          "Something went wrong. Please try again later.",
+        ),
         color: "red",
         position: "top-center",
       });
@@ -105,13 +111,14 @@ function DateSelectionForm() {
         <form onSubmit={handleSubmit}>
           {/* Start Date input */}
           <Group grow>
-            <DateInput
+            <TextInput
               label="Start Date"
-              placeholder="MM/DD/YYYY"
+              placeholder="YYYY-MM-DD"
+              type="date"
               fullWidth
               value={startDate}
-              minDate={new Date()}
-              onChange={setStartDate}
+              min={todayISO}
+              onChange={(event) => setStartDate(event.currentTarget.value)}
               required
               radius="md"
               size="md"
@@ -138,13 +145,14 @@ function DateSelectionForm() {
             />
 
             {/* End Date input */}
-            <DateInput
+            <TextInput
               label="End Date"
-              placeholder="MM/DD/YYYY"
+              placeholder="YYYY-MM-DD"
+              type="date"
               value={endDate}
-              onChange={setEndDate}
+              onChange={(event) => setEndDate(event.currentTarget.value)}
               fullWidth
-              minDate={startDate || new Date()}
+              min={startDate || todayISO}
               required
               radius="md"
               size="md"

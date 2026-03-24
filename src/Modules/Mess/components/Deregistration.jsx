@@ -1,131 +1,296 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+  Alert,
   Button,
-  Container,
-  Paper,
+  Card,
   Group,
-  Title,
   Text,
   Stack,
+  TextInput,
 } from "@mantine/core";
 import { useSelector } from "react-redux";
-import { DateInput, Calendar } from "@mantine/dates";
-import axios from "axios";
-import { deregistrationRequestRoute } from "../routes";
+import { notifications } from "@mantine/notifications";
+import {
+  submitDeregistrationRequest,
+  deleteDeregistrationRequest,
+  getApiErrorMessage,
+  fetchStudentRegistrationStatus,
+  fetchDeregistrationRequests,
+} from "../api";
 
 function Deregistration() {
   const roll_no = useSelector((state) => state.user.roll_no);
-  const [endDate, setEndDate] = useState(null);
+  const [endDate, setEndDate] = useState("");
+  const [registrationStatus, setRegistrationStatus] = useState(null);
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
+  const [latestRequest, setLatestRequest] = useState(null);
   const today = new Date();
+  const nextMonthStartISO = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    1,
+  )
+    .toISOString()
+    .split("T")[0];
+
+  const getStatusColor = (status) => {
+    const normalized = String(status || "").toLowerCase();
+    if (normalized === "accept") {
+      return "green";
+    }
+    if (normalized === "reject") {
+      return "red";
+    }
+    return "yellow";
+  };
+
+  const getStatusLabel = (status) => {
+    const normalized = String(status || "").toLowerCase();
+    if (normalized === "accept") {
+      return "Accepted";
+    }
+    if (normalized === "reject") {
+      return "Rejected";
+    }
+    return "Pending";
+  };
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      const token = localStorage.getItem("authToken");
+      if (!token || !roll_no) {
+        return;
+      }
+
+      try {
+        const [statusResponse, deregResponse] = await Promise.all([
+          fetchStudentRegistrationStatus(roll_no, token),
+          fetchDeregistrationRequests(token),
+        ]);
+
+        setRegistrationStatus(
+          statusResponse.data?.payload?.current_mess_status,
+        );
+
+        const studentRequests = (deregResponse.data?.payload || []).filter(
+          (item) =>
+            String(item.student_id).toUpperCase() ===
+            String(roll_no).toUpperCase(),
+        );
+
+        const latest = studentRequests.reduce((prev, curr) => {
+          if (!prev) {
+            return curr;
+          }
+          return Number(curr.id || 0) > Number(prev.id || 0) ? curr : prev;
+        }, null);
+
+        setLatestRequest(latest);
+
+        const pendingExists = studentRequests.some(
+          (item) => String(item.status).toLowerCase() === "pending",
+        );
+        setHasPendingRequest(pendingExists);
+      } catch (error) {
+        notifications.show({
+          title: "Error",
+          message: getApiErrorMessage(
+            error,
+            "Failed to load deregistration status.",
+          ),
+          color: "red",
+        });
+      }
+    };
+
+    loadStatus();
+  }, [roll_no]);
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (registrationStatus !== "Registered") {
+      notifications.show({
+        title: "Not Allowed",
+        message: "Only registered students can apply for deregistration.",
+        color: "orange",
+      });
+      return;
+    }
+
+    if (hasPendingRequest) {
+      notifications.show({
+        title: "Pending Request",
+        message: "You already have a pending deregistration request.",
+        color: "orange",
+      });
+      return;
+    }
+
     if (!endDate) {
-      alert("Please select an end date.");
+      notifications.show({
+        title: "Validation",
+        message: "Please select an end date.",
+        color: "orange",
+      });
       return;
     }
 
     const data = {
       student_id: roll_no,
-      end_date: endDate.toISOString().split("T")[0],
+      end_date: endDate,
     };
 
     try {
-      const response = await axios.post(deregistrationRequestRoute, data, {
-        headers: {
-          Authorization: `Token ${localStorage.getItem("authToken")}`,
-        },
-      });
+      const response = await submitDeregistrationRequest(
+        data,
+        localStorage.getItem("authToken"),
+      );
 
       if (response.status === 200) {
-        alert("Deregistration request submitted successfully!");
+        setHasPendingRequest(true);
+        setLatestRequest({
+          student_id: roll_no,
+          end_date: data.end_date,
+          status: "pending",
+          deregistration_remark: "NA",
+        });
+        notifications.show({
+          title: "Success",
+          message: "Deregistration request submitted successfully!",
+          color: "green",
+        });
       }
     } catch (error) {
-      alert("Error submitting deregistration request");
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(
+          error,
+          "Error submitting deregistration request",
+        ),
+        color: "red",
+      });
+    }
+  };
+
+  const handleDeletePendingRequest = async () => {
+    const token = localStorage.getItem("authToken");
+    if (!token || !latestRequest?.id) {
+      return;
+    }
+
+    try {
+      const response = await deleteDeregistrationRequest(
+        latestRequest.id,
+        token,
+      );
+      if (response.status === 200) {
+        setHasPendingRequest(false);
+        setLatestRequest(null);
+        notifications.show({
+          title: "Success",
+          message: "Pending deregistration request deleted.",
+          color: "green",
+        });
+      }
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(error, "Failed to delete pending request."),
+        color: "red",
+      });
     }
   };
 
   return (
-    <Container
-      size="lg"
-      style={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        marginTop: "40px",
-      }}
-    >
-      <Paper
-        shadow="xl"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          minWidth: "75rem",
-          width: "100%",
-          padding: "30px",
-          margin: "auto",
-        }}
-      >
-        <Stack>
-          <Title order={2} align="left" color="#1c7ed6">
-            Deregistration Request
-          </Title>
-          <Text size="sm">
-            Click on the Deregister Button below to request deregistration. If
-            your request is pending, view the status in the status bar. You will
-            be deregistered from the mess on the date which you fill, and you
-            can't eat on that day. Thus, advised to fill the next day instead of
-            today.
-            <br />
-            <br />
-            ** You can only deregister from the start of the next month.
-          </Text>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Stack>
+        <Text size="lg" fw={700} c="#3B82F6">
+          Deregistration Request
+        </Text>
 
-          <form onSubmit={handleSubmit}>
-            <Group position="apart" align="center">
-              <DateInput
-                label="End Date*"
-                placeholder="dd-mm-yyyy"
-                value={endDate}
-                minDate={new Date(today.getFullYear(), today.getMonth() + 1, 1)}
-                onChange={setEndDate}
-                required
-                radius="md"
-                size="md"
-                icon={<Calendar size={20} />}
-                labelProps={{ style: { marginBottom: "10px" } }}
-                styles={(theme) => ({
-                  dropdown: {
-                    backgroundColor: theme.colors.gray[0],
-                    boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
-                  },
-                  day: {
-                    "&[data-selected]": {
-                      backgroundColor: theme.colors.blue[6],
-                    },
-                    "&[data-today]": {
-                      backgroundColor: theme.colors.gray[2],
-                      fontWeight: "bold",
-                    },
-                  },
-                })}
-                mb="lg"
-              />
+        {registrationStatus !== "Registered" && (
+          <Alert color="blue" mb="sm">
+            You are currently not registered in mess. Registration option is
+            available in the tabs.
+          </Alert>
+        )}
+
+        {hasPendingRequest && (
+          <Alert color="yellow" mb="sm">
+            You already have a pending deregistration request. You can submit a
+            new one only if this request is rejected.
+          </Alert>
+        )}
+
+        {latestRequest && (
+          <Alert color={getStatusColor(latestRequest.status)} mb="sm">
+            <Text fw={600}>
+              Current Deregistration Status:{" "}
+              {getStatusLabel(latestRequest.status)}
+            </Text>
+            <Text size="sm">
+              Requested End Date: {latestRequest.end_date || "-"}
+            </Text>
+            <Text size="sm">
+              Remark: {latestRequest.deregistration_remark || "NA"}
+            </Text>
+            {String(latestRequest.status).toLowerCase() === "pending" && (
               <Button
-                size="md"
-                radius="md"
-                color="blue"
-                type="submit"
-                style={{ width: "20%" }}
+                size="xs"
+                color="red"
+                variant="light"
+                mt="sm"
+                onClick={handleDeletePendingRequest}
               >
-                Deregister
+                Delete Pending Request
               </Button>
-            </Group>
-          </form>
-        </Stack>
-      </Paper>
-    </Container>
+            )}
+          </Alert>
+        )}
+
+        <Text size="sm">
+          Click on the Deregister Button below to request deregistration. If
+          your request is pending, view the status in the status bar. You will
+          be deregistered from the mess on the date which you fill, and you
+          can&apos;t eat on that day. Thus, advised to fill the next day instead
+          of today.
+          <br />
+          <br />
+          ** You can only deregister from the start of the next month.
+        </Text>
+
+        <form onSubmit={handleSubmit}>
+          <Group align="flex-end">
+            <TextInput
+              label="End Date*"
+              placeholder="YYYY-MM-DD"
+              type="date"
+              value={endDate}
+              min={nextMonthStartISO}
+              onChange={(event) => setEndDate(event.currentTarget.value)}
+              required
+              radius="md"
+              size="md"
+              labelProps={{ style: { marginBottom: "10px" } }}
+              mb="lg"
+            />
+            <Button
+              size="md"
+              radius="md"
+              color="blue"
+              type="submit"
+              mb="lg"
+              disabled={
+                registrationStatus !== "Registered" || hasPendingRequest
+              }
+            >
+              Deregister
+            </Button>
+          </Group>
+        </form>
+      </Stack>
+    </Card>
   );
 }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { Table, Container, Paper, Title, Box } from "@mantine/core";
-import { specialFoodRequestRoute } from "../routes";
+import { fetchSpecialFoodRequests } from "../api";
 
 function SpecialFoodStatus() {
   const roleno = useSelector((state) => state.user.roll_no); // Use Redux state for roll number
@@ -10,14 +10,8 @@ function SpecialFoodStatus() {
 
   // Fetch special food data
   useEffect(() => {
-    fetch(specialFoodRequestRoute, {
-      method: "GET",
-      headers: {
-        Authorization: `Token ${authToken}`, // Corrected syntax for the Authorization header
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => response.json())
+    fetchSpecialFoodRequests(authToken)
+      .then((response) => response.data)
       .then((data) => {
         const filteredData = data.payload.filter(
           (request) => request.student_id === roleno,
@@ -94,25 +88,8 @@ function SpecialFoodStatus() {
     ));
 
   return (
-    <Container
-      size="lg"
-      style={{
-        display: "flex",
-        justifyContent: "center", // Centers the form horizontally
-        marginTop: "20px",
-      }}
-    >
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          width: "100%",
-          minWidth: "70rem", // Set the min-width to 75rem
-          padding: "2rem", // Add padding for better spacing
-        }}
-      >
+    <Container fluid mt="lg">
+      <Paper shadow="md" radius="md" p="xl" withBorder>
         <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
           Special Food Status
         </Title>

@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Paper, Button, Textarea, Title, Group, Box } from "@mantine/core";
 // import * as PhosphorIcons from "@phosphor-icons/react";
-import axios from "axios"; // Assuming you are using axios for making HTTP requests
-import { feedbackRoute } from "../routes";
+import { notifications } from "@mantine/notifications";
+import { getApiErrorMessage, submitFeedback } from "../api";
 
 // Styles
 const feedbackContainerStyle = {
@@ -51,41 +51,53 @@ const submitButtonStyle = {
 };
 
 function FeedbackPage() {
-  const [selectedCategory, setSelectedCategory] = useState("Food"); // Default category
+  const [selectedCategory, setSelectedCategory] = useState("food"); // Default category
   const [feedback, setFeedback] = useState(""); // State to store the feedback input
   const [isSubmitting, setIsSubmitting] = useState(false); // State to manage submission state
 
   const handleSubmit = async () => {
     if (feedback.trim() === "") {
-      alert("Feedback cannot be empty!");
+      notifications.show({
+        title: "Validation Error",
+        message: "Feedback cannot be empty",
+        color: "red",
+      });
       return;
     }
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem("authToken"); // Get the token from local storage
-      const response = await axios.post(
-        feedbackRoute,
+      const response = await submitFeedback(
         {
           mess: "mess1", // Need to change the mess option based on the registration
           feedback_type: selectedCategory,
           description: feedback,
         },
-        {
-          headers: {
-            authorization: `Token ${token}`, // Pass the token in the Authorization header
-          },
-        },
+        token,
       );
-      console.log(response);
       if (response.status === 200) {
-        alert("Feedback submitted successfully!");
+        notifications.show({
+          title: "Success",
+          message: "Feedback submitted successfully",
+          color: "green",
+        });
         setFeedback(""); // Clear the textarea after submission
       } else {
-        alert("Failed to submit feedback");
+        notifications.show({
+          title: "Error",
+          message: "Failed to submit feedback",
+          color: "red",
+        });
       }
     } catch (error) {
-      console.error("Error submitting feedback:", error);
-      alert("An error occurred. Please try again.");
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(
+          error,
+          "An error occurred. Please try again.",
+        ),
+        color: "red",
+      });
     } finally {
       setIsSubmitting(false); // Reset submission state
     }
@@ -102,32 +114,29 @@ function FeedbackPage() {
         <Group position="center" style={categoryButtonContainer}>
           <Button
             // leftIcon={<PhosphorIcons.ForkKnife size={20} />}
-            variant={selectedCategory === "Food" ? "filled" : "outline"}
-            onClick={() => setSelectedCategory("Food")}
+            variant={selectedCategory === "food" ? "filled" : "outline"}
+            onClick={() => setSelectedCategory("food")}
             size="md"
           >
             Food
           </Button>
           <Button
-            // leftIcon={<PhosphorIcons.Broom size={20} />}
-            variant={selectedCategory === "Cleanliness" ? "filled" : "outline"}
-            onClick={() => setSelectedCategory("Cleanliness")}
+            variant={selectedCategory === "cleanliness" ? "filled" : "outline"}
+            onClick={() => setSelectedCategory("cleanliness")}
             size="md"
           >
             Cleanliness
           </Button>
           <Button
-            // leftIcon={<PhosphorIcons.Wrench size={20} />}
-            variant={selectedCategory === "Maintenance" ? "filled" : "outline"}
-            onClick={() => setSelectedCategory("Maintenance")}
+            variant={selectedCategory === "maintenance" ? "filled" : "outline"}
+            onClick={() => setSelectedCategory("maintenance")}
             size="md"
           >
             Maintenance
           </Button>
           <Button
-            // leftIcon={<PhosphorIcons.Note size={20} />}
-            variant={selectedCategory === "Others" ? "filled" : "outline"}
-            onClick={() => setSelectedCategory("Others")}
+            variant={selectedCategory === "others" ? "filled" : "outline"}
+            onClick={() => setSelectedCategory("others")}
             size="md"
           >
             Others

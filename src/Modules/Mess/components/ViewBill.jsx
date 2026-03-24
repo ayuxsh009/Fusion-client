@@ -1,17 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import {
-  Table,
-  Text,
-  Button,
-  Group,
-  Container,
-  Paper,
-  Title,
-  Flex,
-} from "@mantine/core";
+import { Table, Text, Button, Group, Card, Flex } from "@mantine/core";
 import { DownloadSimple } from "@phosphor-icons/react";
-import { viewBillsRoute, getMessStatusRoute } from "../routes";
+import { fetchMessStatus, fetchStudentBills } from "../api";
 
 function MessBilling() {
   const rollNo = useSelector((state) => state.user.roll_no); // Use Redux state to get roll number
@@ -22,17 +13,8 @@ function MessBilling() {
 
   // Fetch payment data from API
   useEffect(() => {
-    fetch(viewBillsRoute, {
-      method: "POST",
-      headers: {
-        Authorization: `Token ${authToken}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        student_id: rollNo, // Send roll number as student_id
-      }),
-    })
-      .then((response) => response.json())
+    fetchStudentBills(rollNo, authToken)
+      .then((response) => response.data)
       .then((data) => {
         if (data.payload) {
           // Map API response to the required format
@@ -55,14 +37,8 @@ function MessBilling() {
     // Fetch registration status
     const fetchRegistrationStatus = async () => {
       try {
-        const response = await fetch(getMessStatusRoute, {
-          method: "GET",
-          headers: {
-            Authorization: `Token ${authToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-        const data = await response.json();
+        const response = await fetchMessStatus(authToken);
+        const { data } = response;
         setMessStatus(data.payload.current_mess_status);
         setTotalBalance(data.payload.current_rem_balance);
       } catch (error) {
@@ -126,55 +102,38 @@ function MessBilling() {
     ));
 
   return (
-    <Container
-      size="lg"
-      style={{
-        display: "flex",
-        justifyContent: "center", // Centers the form horizontally
-        marginTop: "40px",
-      }}
-    >
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          width: "100%",
-          minWidth: "75rem", // Set the min-width to 75rem
-          padding: "2rem", // Add padding for better spacing
-        }}
-      >
-        <Title order={2} align="center" mb="x1" style={{ color: "#1c7ed6" }}>
-          View Bill
-        </Title>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        View Bill
+      </Text>
 
-        {/* Table */}
-        <Table striped highlightOnHover withBorder withColumnBorders>
+      {/* Table */}
+      <div style={{ overflowX: "auto" }}>
+        <Table striped highlightOnHover withColumnBorders>
           <Table.Thead>{renderHeader()}</Table.Thead>
           <Table.Tbody>{renderRows()}</Table.Tbody>
         </Table>
+      </div>
 
-        <Flex direction="column" mt="lg">
-          <Text size="lg" weight={700} mb="xs">
-            Total Remaining Balance: ₹{totalBalance}
-          </Text>
-          <Text size="lg" weight={600}>
-            Current Mess Status: {messStatus}
-          </Text>
-        </Flex>
+      <Flex direction="column" mt="lg">
+        <Text size="lg" fw={700} mb="xs">
+          Total Remaining Balance: ₹{totalBalance}
+        </Text>
+        <Text size="lg" fw={600}>
+          Current Mess Status: {messStatus}
+        </Text>
+      </Flex>
 
-        <Group position="right" mt="md">
-          <Button
-            variant="filled"
-            color="blue"
-            leftIcon={<DownloadSimple size={16} />}
-          >
-            Download
-          </Button>
-        </Group>
-      </Paper>
-    </Container>
+      <Group justify="flex-end" mt="md">
+        <Button
+          variant="filled"
+          color="blue"
+          leftSection={<DownloadSimple size={16} />}
+        >
+          Download
+        </Button>
+      </Group>
+    </Card>
   );
 }
 

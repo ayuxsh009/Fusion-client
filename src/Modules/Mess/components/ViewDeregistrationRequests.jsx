@@ -1,15 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { Table, Card, Text, Button, Flex, TextInput } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
-  Table,
-  Container,
-  Paper,
-  Title,
-  Button,
-  Flex,
-  TextInput,
-} from "@mantine/core";
-import axios from "axios";
-import { deregistrationRequestRoute } from "../routes";
+  fetchDeregistrationRequests,
+  getApiErrorMessage,
+  updateDeregistrationRequest,
+} from "../api";
 
 function ViewDeregistrationRequests() {
   const [deregistrationData, setDeregistrationData] = useState([]);
@@ -17,13 +13,11 @@ function ViewDeregistrationRequests() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchDeregistrationRequests = async () => {
+    const loadDeregistrationRequests = async () => {
       try {
-        const response = await axios.get(deregistrationRequestRoute, {
-          headers: {
-            Authorization: `Token ${localStorage.getItem("authToken")}`,
-          },
-        });
+        const response = await fetchDeregistrationRequests(
+          localStorage.getItem("authToken"),
+        );
         console.log(response.data.payload);
         setDeregistrationData(
           response.data.payload.map((item) => ({
@@ -38,7 +32,7 @@ function ViewDeregistrationRequests() {
       }
     };
 
-    fetchDeregistrationRequests();
+    loadDeregistrationRequests();
   }, []);
 
   const handleUpdate = async (index, newStatus) => {
@@ -51,11 +45,10 @@ function ViewDeregistrationRequests() {
         deregistration_remark: item.remark,
       };
 
-      const response = await axios.put(deregistrationRequestRoute, data, {
-        headers: {
-          Authorization: `Token ${localStorage.getItem("authToken")}`,
-        },
-      });
+      const response = await updateDeregistrationRequest(
+        data,
+        localStorage.getItem("authToken"),
+      );
 
       if (response.status === 200) {
         setDeregistrationData((prevData) =>
@@ -63,12 +56,26 @@ function ViewDeregistrationRequests() {
             i === index ? { ...request, status: newStatus } : request,
           ),
         );
-        alert("Request updated successfully!");
+        notifications.show({
+          title: "Success",
+          message: "Request updated successfully",
+          color: "green",
+        });
       } else {
-        alert("Failed to update request");
+        notifications.show({
+          title: "Error",
+          message: "Failed to update request",
+          color: "red",
+        });
       }
     } catch (err) {
-      setError(`Error updating request: ${err}`);
+      const message = getApiErrorMessage(err, "Error updating request");
+      setError(message);
+      notifications.show({
+        title: "Error",
+        message,
+        color: "red",
+      });
     }
   };
 
@@ -129,12 +136,12 @@ function ViewDeregistrationRequests() {
   }
 
   return (
-    <Container size="lg" mt={30} miw="75rem">
-      <Paper shadow="md" radius="md" p="lg" withBorder>
-        <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
-          Deregistration Requests
-        </Title>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Deregistration Requests
+      </Text>
 
+      <div style={{ overflowX: "auto" }}>
         <Table striped highlightOnHover withColumnBorders>
           <Table.Thead>
             <Table.Tr>
@@ -163,8 +170,8 @@ function ViewDeregistrationRequests() {
 
           <Table.Tbody>{renderRows()}</Table.Tbody>
         </Table>
-      </Paper>
-    </Container>
+      </div>
+    </Card>
   );
 }
 

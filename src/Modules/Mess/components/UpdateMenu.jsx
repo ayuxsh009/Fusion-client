@@ -1,178 +1,201 @@
-import React, { useState } from "react";
-import { Divider, TextInput, Table, Title } from "@mantine/core";
-import classes from "../styles/messModule.module.css";
+import React, { useState, useEffect } from "react";
+import {
+  Button,
+  Divider,
+  Flex,
+  Loader,
+  Text,
+  TextInput,
+  Title,
+} from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { fetchMenu, updateMenuItems, getApiErrorMessage } from "../api";
+
+const DAYS = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+];
+
+const MEAL_CODE = {
+  Monday: { breakfast: "MB", lunch: "ML", dinner: "MD" },
+  Tuesday: { breakfast: "TB", lunch: "TL", dinner: "TD" },
+  Wednesday: { breakfast: "WB", lunch: "WL", dinner: "WD" },
+  Thursday: { breakfast: "THB", lunch: "THL", dinner: "THD" },
+  Friday: { breakfast: "FB", lunch: "FL", dinner: "FD" },
+  Saturday: { breakfast: "SB", lunch: "SL", dinner: "SD" },
+  Sunday: { breakfast: "SUB", lunch: "SUL", dinner: "SUD" },
+};
+
+const emptyMenu = () =>
+  Object.fromEntries(
+    DAYS.map((d) => [d, { breakfast: "", lunch: "", dinner: "" }]),
+  );
+
+function buildMenuState(apiData, messOption) {
+  const state = emptyMenu();
+  apiData
+    .filter((item) => item.mess_option === messOption)
+    .forEach((item) => {
+      for (const day of DAYS) {
+        for (const meal of ["breakfast", "lunch", "dinner"]) {
+          if (MEAL_CODE[day][meal] === item.meal_time) {
+            state[day][meal] = item.dish;
+          }
+        }
+      }
+    });
+  return state;
+}
 
 function UpdateMenu() {
-  const initialMenu = {
-    Monday: {
-      breakfast: "Sprouts, Idli Sambhar, Nariyal Chutney",
-      lunch: "Sprouts, Idli Sambhar, Nariyal Chutney",
-      dinner: "Sprouts, Idli Sambhar, Nariyal Chutney",
-    },
-    Tuesday: {
-      breakfast: "Idli Sambhar, Nariyal Chutney",
-      lunch: "Idli Sambhar, Nariyal Chutney",
-      dinner: "Idli Sambhar, Nariyal Chutney",
-    },
-    Wednesday: {
-      breakfast: "Idli Sambhar, Nariyal Chutney",
-      lunch: "Idli Sambhar, Nariyal Chutney",
-      dinner: "Idli Sambhar, Nariyal Chutney",
-    },
-    Thursday: {
-      breakfast: "Idli Sambhar, Nariyal Chutney",
-      lunch: "Idli Sambhar, Nariyal Chutney",
-      dinner: "Idli Sambhar, Nariyal Chutney",
-    },
-    Friday: {
-      breakfast: "Idli Sambhar, Nariyal Chutney",
-      lunch: "Idli Sambhar, Nariyal Chutney",
-      dinner: "Idli Sambhar, Nariyal Chutney",
-    },
-    Saturday: {
-      breakfast: "Idli Sambhar, Nariyal Chutney",
-      lunch: "Idli Sambhar, Nariyal Chutney",
-      dinner: "Idli Sambhar, Nariyal Chutney",
-    },
-    Sunday: {
-      breakfast: "Idli Sambhar, Nariyal Chutney",
-      lunch: "Idli Sambhar, Nariyal Chutney",
-      dinner: "Idli Sambhar, Nariyal Chutney",
-    },
+  const [menu1, setMenu1] = useState(emptyMenu());
+  const [menu2, setMenu2] = useState(emptyMenu());
+  const [activeMess, setActiveMess] = useState("mess1");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("authToken");
+    fetchMenu(token)
+      .then((res) => {
+        setMenu1(buildMenuState(res.data.payload, "mess1"));
+        setMenu2(buildMenuState(res.data.payload, "mess2"));
+      })
+      .catch((error) =>
+        notifications.show({
+          title: "Error",
+          message: getApiErrorMessage(error, "Failed to load menu"),
+          color: "red",
+        }),
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  const activeMenu = activeMess === "mess1" ? menu1 : menu2;
+  const setActiveMenu = activeMess === "mess1" ? setMenu1 : setMenu2;
+
+  const handleChange = (day, meal, value) => {
+    setActiveMenu((prev) => ({
+      ...prev,
+      [day]: { ...prev[day], [meal]: value },
+    }));
   };
 
-  const [menu1, setMenu1] = useState(initialMenu);
-  const [menu2, setMenu2] = useState(initialMenu);
-  const [activeMess, setActiveMess] = useState("Mess 1");
-
-  const handleChange = (day, mealType, value) => {
-    if (activeMess === "Mess 1") {
-      setMenu1((prevMenu) => ({
-        ...prevMenu,
-        [day]: { ...prevMenu[day], [mealType]: value },
-      }));
-    } else {
-      setMenu2((prevMenu) => ({
-        ...prevMenu,
-        [day]: { ...prevMenu[day], [mealType]: value },
-      }));
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("authToken");
+    const items = [];
+    for (const day of DAYS) {
+      for (const meal of ["breakfast", "lunch", "dinner"]) {
+        items.push({
+          meal_time: MEAL_CODE[day][meal],
+          dish: activeMenu[day][meal],
+        });
+      }
+    }
+    setSaving(true);
+    try {
+      await updateMenuItems({ mess_option: activeMess, items }, token);
+      notifications.show({
+        title: "Success",
+        message: "Menu updated successfully",
+        color: "green",
+      });
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(error, "Failed to save menu"),
+        color: "red",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Updated Menu:", activeMess === "Mess 1" ? menu1 : menu2);
-  };
-
-  const buttonStyle = (isActive) => ({
-    backgroundColor: isActive ? "#6c757d" : "#007bff", // Gray if active, blue otherwise
-    color: "#fff",
-    padding: "10px 20px",
-    fontSize: "1rem",
-    border: "none",
-    borderRadius: "4px",
-    cursor: "pointer",
-    margin: "10px",
-  });
+  if (loading)
+    return (
+      <Flex justify="center" mt="xl">
+        <Loader />
+      </Flex>
+    );
 
   return (
-    <div
-      className={classes.fusionText}
-      style={{ padding: "40px 20px", textAlign: "center" }}
-    >
-      {/* Title */}
+    <div style={{ padding: "24px" }}>
       <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
         Update Mess Menu
       </Title>
 
-      {/* Mess Selection */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          gap: "20px",
-          marginBottom: "20px",
-        }}
-      >
-        <button
-          onClick={() => setActiveMess("Mess 1")}
-          style={buttonStyle(activeMess === "Mess 1")}
+      <Flex justify="center" gap="md" mb="md">
+        <Button
+          variant={activeMess === "mess1" ? "filled" : "outline"}
+          onClick={() => setActiveMess("mess1")}
         >
-          Mess-1
-        </button>
-        <button
-          onClick={() => setActiveMess("Mess 2")}
-          style={buttonStyle(activeMess === "Mess 2")}
+          Mess 1
+        </Button>
+        <Button
+          variant={activeMess === "mess2" ? "filled" : "outline"}
+          onClick={() => setActiveMess("mess2")}
         >
-          Mess-2
-        </button>
-      </div>
+          Mess 2
+        </Button>
+      </Flex>
 
       <Divider my="sm" />
 
       <form onSubmit={handleSubmit}>
-        <Table
-          striped
-          highlightOnHover
-          style={{ width: "80%", margin: "20px auto" }}
-        >
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
           <thead>
             <tr>
-              <th>Day</th>
-              <th>Breakfast</th>
-              <th>Lunch</th>
-              <th>Dinner</th>
+              {["Day", "Breakfast", "Lunch", "Dinner"].map((h) => (
+                <th
+                  key={h}
+                  style={{
+                    padding: "8px",
+                    textAlign: "left",
+                    borderBottom: "2px solid #dee2e6",
+                  }}
+                >
+                  <Text fw={600}>{h}</Text>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
-            {Object.keys(activeMess === "Mess 1" ? menu1 : menu2).map((day) => (
+            {DAYS.map((day) => (
               <tr key={day}>
-                <td>{day}</td>
-                <td>
-                  <TextInput
-                    value={
-                      activeMess === "Mess 1"
-                        ? menu1[day].breakfast
-                        : menu2[day].breakfast
-                    }
-                    onChange={(e) =>
-                      handleChange(day, "breakfast", e.target.value)
-                    }
-                  />
+                <td
+                  style={{
+                    padding: "8px",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {day}
                 </td>
-                <td>
-                  <TextInput
-                    value={
-                      activeMess === "Mess 1"
-                        ? menu1[day].lunch
-                        : menu2[day].lunch
-                    }
-                    onChange={(e) => handleChange(day, "lunch", e.target.value)}
-                  />
-                </td>
-                <td>
-                  <TextInput
-                    value={
-                      activeMess === "Mess 1"
-                        ? menu1[day].dinner
-                        : menu2[day].dinner
-                    }
-                    onChange={(e) =>
-                      handleChange(day, "dinner", e.target.value)
-                    }
-                  />
-                </td>
+                {["breakfast", "lunch", "dinner"].map((meal) => (
+                  <td key={meal} style={{ padding: "6px" }}>
+                    <TextInput
+                      value={activeMenu[day][meal]}
+                      onChange={(e) => handleChange(day, meal, e.target.value)}
+                      placeholder={`${day} ${meal}`}
+                    />
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
-        </Table>
+        </table>
 
-        {/* Submit Button */}
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <button type="submit" style={buttonStyle(false)}>
+        <Flex justify="center" mt="lg">
+          <Button type="submit" loading={saving} color="blue" size="md">
             Save Menu
-          </button>
-        </div>
+          </Button>
+        </Flex>
       </form>
     </div>
   );

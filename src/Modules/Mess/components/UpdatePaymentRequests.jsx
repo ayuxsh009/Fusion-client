@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   Table,
-  Container,
-  Paper,
-  Title,
+  Card,
+  Text,
   Button,
   Flex,
   Loader,
   Alert,
   TextInput,
 } from "@mantine/core";
-import { updateBalanceRequestRoute } from "../routes";
+import { fetchBalanceRequests, updateBalanceRequest } from "../api";
 
 const tableHeaders = [
   "Student ID",
@@ -37,9 +35,7 @@ function ViewUpdatePaymentRequests() {
           return;
         }
 
-        const response = await axios.get(updateBalanceRequestRoute, {
-          headers: { Authorization: `Token ${token}` },
-        });
+        const response = await fetchBalanceRequests(token);
 
         if (response.data && response.data.payload) {
           const filteredData = response.data.payload.filter(
@@ -73,15 +69,13 @@ function ViewUpdatePaymentRequests() {
         status,
         update_payment_remark: item.remark || "",
       };
-      await axios.put(updateBalanceRequestRoute, payload, {
-        headers: { Authorization: `Token ${token}` },
-      });
+      await updateBalanceRequest(payload, token);
       setUpdatePaymentData((prevData) =>
         prevData.filter((items) => items.id !== id),
       );
     } catch (errors) {
       console.error(`Error updating payment request ${status}:`, errors);
-      setError(`Error updating payment request: ${error.message}`);
+      setError(`Error updating payment request: ${errors.message}`);
     }
   };
 
@@ -94,20 +88,20 @@ function ViewUpdatePaymentRequests() {
   };
 
   return (
-    <Container size="lg" mt={30} miw="75rem">
-      <Paper shadow="lg" radius="lg" p="xl" withBorder>
-        <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
-          Update Payment Requests
-        </Title>
-        {loading ? (
-          <Flex justify="center" align="center" style={{ minHeight: "200px" }}>
-            <Loader size="xl" />
-          </Flex>
-        ) : error ? (
-          <Alert color="red" title="Error" mb="lg">
-            {error}
-          </Alert>
-        ) : (
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Update Payment Requests
+      </Text>
+      {loading ? (
+        <Flex justify="center" align="center" style={{ minHeight: "200px" }}>
+          <Loader size="xl" />
+        </Flex>
+      ) : error ? (
+        <Alert color="red" title="Error" mb="lg">
+          {error}
+        </Alert>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
           <Table striped highlightOnHover withColumnBorders>
             <Table.Thead>
               <Table.Tr>
@@ -175,9 +169,9 @@ function ViewUpdatePaymentRequests() {
               )}
             </Table.Tbody>
           </Table>
-        )}
-      </Paper>
-    </Container>
+        </div>
+      )}
+    </Card>
   );
 }
 

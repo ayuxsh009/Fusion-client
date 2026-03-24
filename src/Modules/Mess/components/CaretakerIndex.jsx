@@ -20,6 +20,9 @@ import RegDeregUpdatePayment from "./RegisterDeregisterUpdateRequest.jsx";
 import UpdateMenu from "./UpdateMenu.jsx";
 import MessRegistrations from "./MessRegistrations.jsx";
 import ViewMenu from "./ViewMenu.jsx";
+import MessAnnouncements from "./MessAnnouncements.jsx";
+import MenuPollPage from "./MenuPollPage.jsx";
+import VacationSurveyPage from "./VacationSurveyPage.jsx";
 
 function Caretaker() {
   const [activeTab, setActiveTab] = useState("0");
@@ -35,6 +38,9 @@ function Caretaker() {
     { title: "Mess Registrations" },
     { title: "Update Menu" },
     { title: "Update Semester Dates" },
+    { title: "Announcements" },
+    { title: "Menu Poll" },
+    { title: "Vacation Survey" },
   ];
 
   const handleTabChange = (direction) => {
@@ -70,6 +76,12 @@ function Caretaker() {
         return <UpdateMenu />;
       case "8":
         return <UpdateSemDates />;
+      case "9":
+        return <MessAnnouncements />;
+      case "10":
+        return <MenuPollPage />;
+      case "11":
+        return <VacationSurveyPage />;
       default:
         return <Loader />;
     }

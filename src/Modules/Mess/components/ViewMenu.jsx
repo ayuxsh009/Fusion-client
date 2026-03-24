@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import {
   Table,
-  Container,
-  Paper,
-  Title,
+  Card,
+  Text,
   Button,
   Flex,
   Divider,
   Loader,
   Alert,
 } from "@mantine/core";
-import { viewMenuRoute } from "../routes";
+import { fetchMenu } from "../api";
 
 const tableHeaders = ["Day", "Breakfast", "Lunch", "Dinner"];
 
@@ -31,11 +29,7 @@ function ViewMenu() {
           return;
         }
 
-        const response = await axios.get(viewMenuRoute, {
-          headers: {
-            Authorization: `Token ${token}`, // Pass the token in the Authorization header
-          },
-        });
+        const response = await fetchMenu(token);
 
         console.log("API Response Data:", response.data); // Debugging log to check data
         setMenuData(response.data.payload); // Assuming your response data is wrapped in "payload"
@@ -149,68 +143,45 @@ function ViewMenu() {
     ));
 
   return (
-    <Container
-      size="lg"
-      mt={30}
-      miw="75rem"
-      style={{
-        width: "100%",
-        display: "flex",
-        justifyContent: "center",
-        marginTop: "50px",
-      }}
-    >
-      <Paper
-        shadow="xl"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          minWidth: "75rem",
-          width: "100%",
-          padding: "30px",
-          margin: "auto",
-        }}
-      >
-        <Title order={2} align="center" mb="lg" c="#1c7ed6">
-          Weekly Mess Menu
-        </Title>
-        <Divider my="lg" />
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Weekly Mess Menu
+      </Text>
+      <Divider my="lg" />
 
-        {/* Error and Loading State */}
-        {loading ? (
-          <Flex justify="center" align="center" style={{ minHeight: "200px" }}>
-            <Loader size="xl" />
+      {/* Error and Loading State */}
+      {loading ? (
+        <Flex justify="center" align="center" style={{ minHeight: "200px" }}>
+          <Loader size="xl" />
+        </Flex>
+      ) : error ? (
+        <Alert color="red" title="Error" mb="lg">
+          {error}
+        </Alert>
+      ) : (
+        <>
+          <Flex justify="center" mb="lg" gap="md">
+            <Button
+              variant={currentMess === "mess1" ? "filled" : "outline"}
+              size="md"
+              radius="md"
+              onClick={() => setCurrentMess("mess1")}
+              color={currentMess === "mess1" ? "blue" : "gray"}
+            >
+              Mess 1
+            </Button>
+            <Button
+              variant={currentMess === "mess2" ? "filled" : "outline"}
+              size="md"
+              radius="md"
+              onClick={() => setCurrentMess("mess2")}
+              color={currentMess === "mess2" ? "blue" : "gray"}
+            >
+              Mess 2
+            </Button>
           </Flex>
-        ) : error ? (
-          <Alert color="red" title="Error" mb="lg">
-            {error}
-          </Alert>
-        ) : (
-          <>
-            <Flex justify="center" mb="lg" gap="md">
-              <Button
-                variant={currentMess === "mess1" ? "filled" : "outline"}
-                size="md"
-                radius="md"
-                onClick={() => setCurrentMess("mess1")}
-                color={currentMess === "mess1" ? "blue" : "gray"}
-                fullWidth
-              >
-                Mess 1
-              </Button>
-              <Button
-                variant={currentMess === "mess2" ? "filled" : "outline"}
-                size="md"
-                radius="md"
-                onClick={() => setCurrentMess("mess2")}
-                color={currentMess === "mess2" ? "blue" : "gray"}
-                fullWidth
-              >
-                Mess 2
-              </Button>
-            </Flex>
 
+          <div style={{ overflowX: "auto" }}>
             <Table
               striped
               highlightOnHover
@@ -222,10 +193,10 @@ function ViewMenu() {
               </Table.Thead>
               <Table.Tbody>{renderRows()}</Table.Tbody>
             </Table>
-          </>
-        )}
-      </Paper>
-    </Container>
+          </div>
+        </>
+      )}
+    </Card>
   );
 }
 

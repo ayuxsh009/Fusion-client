@@ -15,6 +15,7 @@ import InactivityHandler from "./helper/inactivityhandler";
 import Examination from "./Modules/Examination/examination";
 import Database from "./Modules/Database/database";
 import ProgrammeCurriculumRoutes from "./Modules/Program_curriculum/programmCurriculum";
+import MessRoutes from "./routes/messRoutes";
 import NotFoundPage from "./components/NotFoundPage";
 
 const theme = createTheme({
@@ -78,6 +79,7 @@ export default function App() {
             </div>
           }
         />
+        <Route path="/mess/*" element={<MessRoutes />} />
         <Route path="/accounts/login" element={<LoginPage />} />
         <Route path="/reset-password" element={<ForgotPassword />} />
         <Route path="/examination/*" element={<Examination />} />

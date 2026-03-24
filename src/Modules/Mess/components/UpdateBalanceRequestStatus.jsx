@@ -1,26 +1,12 @@
 import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Paper,
-  Title,
-  Space,
-  Box,
-  Table,
-  Flex,
-} from "@mantine/core";
-import axios from "axios";
+import { Card, Text, Box, Table, Flex } from "@mantine/core";
 import { useSelector } from "react-redux";
 import { host } from "../../../routes/globalRoutes";
-import { updateBalanceRequestRoute } from "../routes";
+import { fetchBalanceRequestStatus } from "../api";
 
 const fetchUpdateBalanceRequestsStatus = async (studentId, token) => {
   try {
-    const response = await axios.get(
-      `${updateBalanceRequestRoute}?student_id=${studentId}`,
-      {
-        headers: { Authorization: `Token ${token}` },
-      },
-    );
+    const response = await fetchBalanceRequestStatus(studentId, token);
     return response.data.payload;
   } catch (error) {
     console.error("Error fetching update payment request status:", error);
@@ -131,28 +117,19 @@ function UpdateBalanceRequest() {
     ));
 
   return (
-    <Container
-      size="xl"
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: "25px",
-      }}
-    >
-      <Paper shadow="md" radius="md" p="xl" withBorder miw="75rem">
-        <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
-          Update Balance Request
-        </Title>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Update Balance Request Status
+      </Text>
 
-        {/* FusionTable */}
-        <Table striped highlightOnHover withBorder withColumnBorders>
+      {/* FusionTable */}
+      <div style={{ overflowX: "auto" }}>
+        <Table striped highlightOnHover withColumnBorders>
           <Table.Thead>{renderHeader()}</Table.Thead>
           <Table.Tbody>{renderRows()}</Table.Tbody>
         </Table>
-      </Paper>
-      <Space h="xl" />
-    </Container>
+      </div>
+    </Card>
   );
 }
 

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   TextInput,
   NumberInput,
@@ -10,28 +10,117 @@ import {
   Textarea,
   Select,
   Group,
+  Alert,
+  Badge,
 } from "@mantine/core";
 import { useSelector } from "react-redux";
-import { DateInput } from "@mantine/dates";
 import { notifications } from "@mantine/notifications";
-import axios from "axios";
 import { FunnelSimple } from "@phosphor-icons/react";
-import { registrationRequestRoute } from "../routes";
+import {
+  fetchRegistrationRequests,
+  fetchStudentRegistrationStatus,
+  getApiErrorMessage,
+  submitRegistrationRequest,
+} from "../api";
 
 function Registration() {
   const roll_no = useSelector((state) => state.user.roll_no);
   const [txnNo, setTxnNo] = useState("");
   const [amount, setAmount] = useState(0);
   const [file, setFile] = useState(null);
-  const [paymentDate, setPaymentDate] = useState(null);
-  const [startDate, setStartDate] = useState(null);
+  const [paymentDate, setPaymentDate] = useState("");
+  const [startDate, setStartDate] = useState("");
   const [error, setError] = useState(null);
   const [messOption, setMessOption] = useState("");
   const [remark, setRemark] = useState("");
-  const today = new Date();
+  const [requestStatus, setRequestStatus] = useState(null);
+  const [requestDate, setRequestDate] = useState(null);
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const todayISO = new Date().toISOString().split("T")[0];
+
+  useEffect(() => {
+    const loadStatus = async () => {
+      const token = localStorage.getItem("authToken");
+      if (!token || !roll_no) {
+        setStatusLoading(false);
+        return;
+      }
+
+      try {
+        const [requestRes, regStatusRes] = await Promise.all([
+          fetchRegistrationRequests(token),
+          fetchStudentRegistrationStatus(roll_no, token),
+        ]);
+
+        const regPayload = regStatusRes?.data?.payload;
+        const regPayloadList = Array.isArray(regPayload)
+          ? regPayload
+          : regPayload
+            ? [regPayload]
+            : [];
+
+        const ownReg = regPayloadList.find(
+          (item) =>
+            String(item.student_id || "").toUpperCase() ===
+            String(roll_no || "").toUpperCase(),
+        );
+        setIsRegistered(
+          String(ownReg?.current_mess_status || "").toLowerCase() ===
+            "registered",
+        );
+
+        const allRequests = requestRes?.data?.payload || [];
+        const myRequests = allRequests
+          .filter(
+            (item) =>
+              String(item.student_id || "").toUpperCase() ===
+              String(roll_no || "").toUpperCase(),
+          )
+          .sort((a, b) => (b.id || 0) - (a.id || 0));
+
+        const latestPendingRequest = myRequests.find((item) => {
+          const statusValue = String(item.status || "").toLowerCase();
+          return statusValue === "pending" || statusValue === "1";
+        });
+
+        if (latestPendingRequest) {
+          setRequestStatus("pending");
+          setRequestDate(latestPendingRequest.start_date || null);
+        } else {
+          setRequestStatus(null);
+          setRequestDate(null);
+        }
+      } catch (statusError) {
+        notifications.show({
+          title: "Error",
+          message: getApiErrorMessage(
+            statusError,
+            "Could not fetch registration status",
+          ),
+          color: "red",
+        });
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    loadStatus();
+  }, [roll_no]);
+
+  const isSubmissionLocked = requestStatus === "pending" || isRegistered;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (isSubmissionLocked) {
+      notifications.show({
+        title: "Info",
+        message: "Your registration request is already pending.",
+        color: "yellow",
+      });
+      return;
+    }
 
     const token = localStorage.getItem("authToken");
     if (!token) {
@@ -45,12 +134,8 @@ function Registration() {
       return;
     }
 
-    const formattedPaymentDate = paymentDate
-      ? paymentDate.toISOString().split("T")[0]
-      : "";
-    const formattedStartDate = startDate
-      ? startDate.toISOString().split("T")[0]
-      : "";
+    const formattedPaymentDate = paymentDate || "";
+    const formattedStartDate = startDate || "";
 
     const formData = new FormData();
     formData.append("Txn_no", txnNo);
@@ -64,42 +149,37 @@ function Registration() {
     formData.append("registration_remark", remark);
 
     try {
-      const response = await axios.post(registrationRequestRoute, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Token ${token}`,
-        },
-      });
+      const response = await submitRegistrationRequest(formData, token);
 
       if (response.status === 200) {
-        // console.log("Form submitted successfully", response.data);
         setError(null);
-        // notifications.show({
-        //   title: "Success",
-        //   message: "Form submitted successfully!",
-        //   color: "green",
-        // });
-        window.alert("form submitted successfully");
+        setRequestStatus("pending");
+        setRequestDate(formattedStartDate || null);
+        notifications.show({
+          title: "Success",
+          message: "Form submitted successfully",
+          color: "green",
+        });
         // Reset form fields
         setTxnNo("");
         setAmount(0);
         setFile(null);
-        setPaymentDate(null);
-        setStartDate(null);
+        setPaymentDate("");
+        setStartDate("");
         setMessOption("");
         setRemark("");
       }
     } catch (errors) {
-      const errorMessage =
-        errors.response?.data?.message ||
-        "Error submitting the form. Please try again.";
+      const errorMessage = getApiErrorMessage(
+        errors,
+        "Error submitting the form. Please try again.",
+      );
       setError(errorMessage);
-      // notifications.show({
-      //   title: "Error",
-      //   message: errorMessage,
-      //   color: "red",
-      // });
-      window.alert("error occured");
+      notifications.show({
+        title: "Error",
+        message: errorMessage,
+        color: "red",
+      });
     }
   };
 
@@ -121,6 +201,27 @@ function Registration() {
 
         {error && <p style={{ color: "red" }}>{error}</p>}
 
+        {!statusLoading && requestStatus === "pending" && (
+          <Alert color="yellow" mb="md">
+            <Group justify="space-between" align="center">
+              <span>
+                Registration status: pending
+                {requestDate ? ` (start date: ${requestDate})` : ""}
+              </span>
+              <Badge color="yellow" variant="light">
+                PENDING
+              </Badge>
+            </Group>
+          </Alert>
+        )}
+
+        {!statusLoading && isRegistered && (
+          <Alert color="green" mb="md">
+            You are already registered in mess. Deregister first before applying
+            again.
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit}>
           <Group grow mb="lg">
             <Select
@@ -136,6 +237,7 @@ function Registration() {
               size="md"
               icon={<FunnelSimple size={18} />}
               required
+              disabled={isSubmissionLocked}
             />
           </Group>
 
@@ -145,6 +247,7 @@ function Registration() {
             value={txnNo}
             onChange={(e) => setTxnNo(e.target.value)}
             required
+            disabled={isSubmissionLocked}
             radius="md"
             size="md"
             mt="xl"
@@ -157,6 +260,7 @@ function Registration() {
             value={amount}
             onChange={setAmount}
             required
+            disabled={isSubmissionLocked}
             radius="md"
             size="md"
             min={0}
@@ -171,36 +275,37 @@ function Registration() {
             onChange={setFile}
             accept="image/*"
             required
+            disabled={isSubmissionLocked}
             size="md"
             mb="lg"
           />
 
-          <DateInput
+          <TextInput
             label="Payment Date"
-            placeholder="Select date"
+            placeholder="YYYY-MM-DD"
+            type="date"
             value={paymentDate}
-            onChange={setPaymentDate}
-            maxDate={today}
-            onDayChange={(day) => setPaymentDate(day)}
+            onChange={(event) => setPaymentDate(event.currentTarget.value)}
+            max={todayISO}
             required
+            disabled={isSubmissionLocked}
             radius="md"
             size="md"
             mb="lg"
-            valueFormat="MMMM D, YYYY"
           />
 
-          <DateInput
+          <TextInput
             label="Start Date"
-            placeholder="Select date"
+            placeholder="YYYY-MM-DD"
+            type="date"
             value={startDate}
-            minDate={today}
-            // onChange={(day) => setStartDate(day)}
-            onChange={setStartDate}
+            min={todayISO}
+            onChange={(event) => setStartDate(event.currentTarget.value)}
             required
+            disabled={isSubmissionLocked}
             radius="md"
             size="md"
             mb="lg"
-            valueFormat="MMMM D, YYYY"
           />
 
           <Textarea
@@ -209,12 +314,20 @@ function Registration() {
             value={remark}
             onChange={(e) => setRemark(e.target.value)}
             radius="md"
+            disabled={isSubmissionLocked}
             size="md"
             mb="lg"
           />
 
-          <Button fullWidth size="md" radius="md" color="blue" type="submit">
-            Submit
+          <Button
+            fullWidth
+            size="md"
+            radius="md"
+            color="blue"
+            type="submit"
+            disabled={isSubmissionLocked}
+          >
+            {isSubmissionLocked ? "Request Pending" : "Submit"}
           </Button>
         </form>
       </Paper>

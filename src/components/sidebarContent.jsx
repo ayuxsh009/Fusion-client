@@ -72,7 +72,7 @@ function SidebarContent({ isCollapsed, toggleSidebar }) {
       label: "Mess Management",
       id: "mess_management",
       icon: <MessIcon size={18} />,
-      url: "/",
+      url: "/mess",
     },
     {
       label: "Visitor's Hostel",
@@ -140,7 +140,7 @@ function SidebarContent({ isCollapsed, toggleSidebar }) {
       icon: <ExamIcon size={18} />,
       url: "/examination",
     },
-        {
+    {
       label: "Database",
       id: "database",
       icon: <DatabaseIcon size={18} />,
@@ -193,11 +193,15 @@ function SidebarContent({ isCollapsed, toggleSidebar }) {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const messAllowedRoles = ["student", "mess_manager", "mess_warden"];
     const filterModules = Modules.filter(
-      (module) => accessibleModules[module.id] || module.id === "home",
+      (module) =>
+        accessibleModules[module.id] ||
+        module.id === "home" ||
+        (module.id === "mess_management" && messAllowedRoles.includes(role)),
     );
     setFilteredModules(filterModules);
-  }, [accessibleModules]);
+  }, [accessibleModules, role]);
 
   const handleModuleClick = (item) => {
     setSelected(item.label);

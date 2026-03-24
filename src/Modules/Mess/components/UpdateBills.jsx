@@ -1,125 +1,177 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   TextInput,
   NumberInput,
   Select,
   Button,
-  Container,
-  Title,
-  Paper,
-  Space,
-  Grid, // Importing Grid component
-} from "@mantine/core"; // Import Mantine components
-import { User, Calendar } from "@phosphor-icons/react"; // Import Phosphor Icons
+  Card,
+  Text,
+  Grid,
+} from "@mantine/core";
+import { User, Calendar } from "@phosphor-icons/react";
+import { notifications } from "@mantine/notifications";
+import axios from "axios";
+import { host } from "../../../routes/globalRoutes";
+import { getApiErrorMessage } from "../api";
 
 function UpdateBill() {
+  const [rollNo, setRollNo] = useState("");
+  const [newAmount, setNewAmount] = useState("");
+  const [month, setMonth] = useState(null);
+  const [year, setYear] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (!rollNo || !newAmount || !month || !year) {
+      notifications.show({
+        title: "Validation Error",
+        message: "All fields are required",
+        color: "red",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      const response = await axios.post(
+        `${host}/mess/api/monthlyBillApi/`,
+        {
+          student_id: rollNo.toUpperCase(),
+          month,
+          year,
+          amount: newAmount,
+        },
+        {
+          headers: {
+            Authorization: `Token ${token}`,
+          },
+        },
+      );
+
+      if (response.status === 200) {
+        notifications.show({
+          title: "Success",
+          message: "Bill updated successfully",
+          color: "green",
+        });
+        setRollNo("");
+        setNewAmount("");
+        setMonth(null);
+        setYear(null);
+      }
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(error, "Failed to update bill"),
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => ({
+    value: String(currentYear - 2 + i),
+    label: String(currentYear - 2 + i),
+  }));
+
   return (
-    <Container
-      size="lg"
-      style={{
-        display: "flex",
-        justifyContent: "center", // Centers the form horizontally
-        marginTop: "25px",
-      }}
-    >
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          width: "100%",
-          maxWidth: "800px", // Optional: Max width for the form
-          minWidth: "75rem", // Setting minWidth to 75rem
-          padding: "30px",
-        }}
-      >
-        <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Update Bill
+      </Text>
+
+      <form onSubmit={handleSubmit}>
+        {/* Roll Number input */}
+        <TextInput
+          label="Roll No."
+          placeholder="Roll No of Student"
+          value={rollNo}
+          onChange={(e) => setRollNo(e.target.value)}
+          required
+          radius="md"
+          size="md"
+          leftSection={<User size={20} />}
+          mb="lg"
+        />
+
+        <Grid grow>
+          {/* New Amount input (left side of the grid) */}
+          <Grid.Col span={6}>
+            <NumberInput
+              label="New Amount"
+              placeholder="New amount for this month's bill"
+              value={newAmount}
+              onChange={setNewAmount}
+              required
+              radius="md"
+              size="md"
+              min={0}
+              step={100}
+              mb="lg"
+            />
+          </Grid.Col>
+
+          {/* Month select input (right side of the grid) */}
+          <Grid.Col span={6}>
+            <Select
+              label="Month"
+              placeholder="Select month"
+              value={month}
+              onChange={setMonth}
+              required
+              radius="md"
+              size="md"
+              leftSection={<Calendar size={20} />}
+              data={[
+                { value: "January", label: "January" },
+                { value: "February", label: "February" },
+                { value: "March", label: "March" },
+                { value: "April", label: "April" },
+                { value: "May", label: "May" },
+                { value: "June", label: "June" },
+                { value: "July", label: "July" },
+                { value: "August", label: "August" },
+                { value: "September", label: "September" },
+                { value: "October", label: "October" },
+                { value: "November", label: "November" },
+                { value: "December", label: "December" },
+              ]}
+              mb="lg"
+            />
+          </Grid.Col>
+        </Grid>
+
+        {/* Year select input */}
+        <Select
+          label="Year"
+          placeholder="Select year"
+          value={year}
+          onChange={setYear}
+          required
+          radius="md"
+          size="md"
+          data={years}
+          mb="lg"
+        />
+
+        {/* Submit button */}
+        <Button
+          type="submit"
+          fullWidth
+          size="lg"
+          radius="md"
+          color="blue"
+          loading={loading}
+        >
           Update Bill
-        </Title>
-
-        <form method="post" action="/mess/updateBill">
-          {/* Roll Number input */}
-          <TextInput
-            label="Roll No."
-            placeholder="Roll No of Student"
-            id="rollNo"
-            required
-            radius="md"
-            size="md"
-            icon={<User size={20} />}
-            mb="lg"
-          />
-
-          <Grid grow>
-            {/* New Amount input (left side of the grid) */}
-            <Grid.Col span={6}>
-              <NumberInput
-                label="New Amount"
-                placeholder="New amount for this month's bill"
-                id="new_amount"
-                required
-                radius="md"
-                size="md"
-                min={0}
-                step={100}
-                mb="lg"
-              />
-            </Grid.Col>
-
-            {/* Month select input (right side of the grid) */}
-            <Grid.Col span={6}>
-              <Select
-                label="Month"
-                id="Month"
-                placeholder="Select month"
-                required
-                radius="md"
-                size="md"
-                icon={<Calendar size={20} />}
-                data={[
-                  { value: "january", label: "January" },
-                  { value: "february", label: "February" },
-                  { value: "march", label: "March" },
-                  { value: "april", label: "April" },
-                  { value: "may", label: "May" },
-                  { value: "june", label: "June" },
-                  { value: "july", label: "July" },
-                  { value: "august", label: "August" },
-                  { value: "september", label: "September" },
-                  { value: "october", label: "October" },
-                  { value: "november", label: "November" },
-                  { value: "december", label: "December" },
-                ]}
-                mb="lg"
-              />
-            </Grid.Col>
-          </Grid>
-
-          {/* Year select input */}
-          <Select
-            label="Year"
-            id="Year"
-            placeholder="Select year"
-            required
-            radius="md"
-            size="md"
-            data={[
-              { value: "2023", label: "2023" },
-              { value: "2024", label: "2024" },
-            ]}
-            mb="lg"
-          />
-
-          <Space h="xl" />
-
-          {/* Submit button */}
-          <Button fullWidth size="lg" radius="md" color="blue">
-            Update Bill
-          </Button>
-        </form>
-      </Paper>
-    </Container>
+        </Button>
+      </form>
+    </Card>
   );
 }
 

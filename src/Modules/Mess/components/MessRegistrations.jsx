@@ -1,12 +1,4 @@
-import {
-  Button,
-  Container,
-  Flex,
-  Grid,
-  Loader,
-  Tabs,
-  Text,
-} from "@mantine/core";
+import { Button, Container, Flex, Loader, Tabs, Text } from "@mantine/core";
 import { CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import classes from "../styles/messModule.module.css";
@@ -103,11 +95,7 @@ function MessActivities() {
       </Flex>
 
       {/* Main content */}
-      <Grid>
-        <Container fluid style={{ maxWidth: "600px", margin: "0 auto" }}>
-          {renderTabContent()}
-        </Container>
-      </Grid>
+      <Container fluid>{renderTabContent()}</Container>
     </>
   );
 }

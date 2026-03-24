@@ -2,7 +2,6 @@ import { Button, Container, Flex, Loader, Tabs, Text } from "@mantine/core";
 import { CaretCircleLeft, CaretCircleRight } from "@phosphor-icons/react";
 import { useRef, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
-import axios from "axios";
 import CustomBreadcrumbs from "../../../components/Breadcrumbs.jsx";
 import classes from "../styles/messModule.module.css";
 import UpdatePayments from "./UpdatePayments.jsx";
@@ -12,7 +11,10 @@ import ViewMenu from "./ViewMenu.jsx";
 import MessFeedback from "./StudentFeedback.jsx";
 import Applications from "./Applications.jsx";
 import ViewBillandPayments from "./ViewBillAndPayments.jsx";
-import { viewRegistrationDataRoute } from "../routes";
+import MessAnnouncements from "./MessAnnouncements.jsx";
+import MenuPollPage from "./MenuPollPage.jsx";
+import VacationSurveyPage from "./VacationSurveyPage.jsx";
+import { fetchStudentRegistrationStatus } from "../api";
 
 function Student() {
   const student_id = useSelector((state) => state.user.roll_no);
@@ -40,23 +42,30 @@ function Student() {
       title: "Deregistration",
       component: <Deregistration />,
     },
+    {
+      key: "announcements",
+      title: "Announcements",
+      component: <MessAnnouncements />,
+    },
+    {
+      key: "menuPoll",
+      title: "Menu Poll",
+      component: <MenuPollPage />,
+    },
+    {
+      key: "vacationSurvey",
+      title: "Vacation Survey",
+      component: <VacationSurveyPage />,
+    },
   ];
 
   useEffect(() => {
     const fetchRegistrationStatus = async () => {
       try {
         const token = localStorage.getItem("authToken");
-        const response = await axios.post(
-          viewRegistrationDataRoute,
-          {
-            type: "search",
-            student_id: student_id.toUpperCase(),
-          },
-          {
-            headers: {
-              Authorization: `Token ${token}`,
-            },
-          },
+        const response = await fetchStudentRegistrationStatus(
+          student_id,
+          token,
         );
         setRegistrationStatus(response.data.payload.current_mess_status);
       } catch (error) {

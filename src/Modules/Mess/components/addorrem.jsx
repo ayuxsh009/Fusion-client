@@ -1,174 +1,287 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-  Container,
-  TextInput,
+  Alert,
   Button,
+  Card,
+  FileInput,
   Group,
   Select,
-  FileInput,
-  Paper,
-  Title,
   Space,
+  Text,
+  TextInput,
 } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import {
   FileArrowUp,
   MagnifyingGlass,
   PlusCircle,
   TrashSimple,
 } from "@phosphor-icons/react";
+import {
+  fetchStudentRegistrationStatus,
+  adminMessManagement,
+  getApiErrorMessage,
+} from "../api";
 
 function ManageMess() {
-  const [mess, setMess] = useState("");
+  const [mess, setMess] = useState("mess1");
   const [rollNo, setRollNo] = useState("");
+  const [amount, setAmount] = useState("0");
   const [excelFile, setExcelFile] = useState(null);
+  const [studentInfo, setStudentInfo] = useState(null);
+  const [searching, setSearching] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const token = localStorage.getItem("authToken");
+
+  const handleSearch = async () => {
+    if (!rollNo.trim()) {
+      notifications.show({
+        title: "Required",
+        message: "Enter a roll number to search.",
+        color: "orange",
+      });
+      return;
+    }
+    setSearching(true);
+    setStudentInfo(null);
+    try {
+      const res = await fetchStudentRegistrationStatus(rollNo.trim(), token);
+      setStudentInfo(res.data.payload);
+    } catch (error) {
+      notifications.show({
+        title: "Not Found",
+        message: getApiErrorMessage(error, "Student not found."),
+        color: "red",
+      });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!rollNo.trim()) {
+      notifications.show({
+        title: "Required",
+        message: "Enter a roll number.",
+        color: "orange",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await adminMessManagement(
+        {
+          action: "add",
+          student_id: rollNo.trim(),
+          mess_option: mess,
+          amount: parseInt(amount) || 0,
+        },
+        token,
+      );
+      notifications.show({
+        title: "Success",
+        message: res.data.message,
+        color: "green",
+      });
+      setStudentInfo(null);
+    } catch (err) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(err, "Failed to add student."),
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = async () => {
+    if (!rollNo.trim()) {
+      notifications.show({
+        title: "Required",
+        message: "Enter a roll number.",
+        color: "orange",
+      });
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await adminMessManagement(
+        { action: "remove", student_id: rollNo.trim() },
+        token,
+      );
+      notifications.show({
+        title: "Success",
+        message: res.data.message,
+        color: "blue",
+      });
+      setStudentInfo(null);
+    } catch (err) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(err, "Failed to remove student."),
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveAll = async (messOption) => {
+    setLoading(true);
+    try {
+      const res = await adminMessManagement(
+        { action: "remove_all", mess_option: messOption },
+        token,
+      );
+      notifications.show({
+        title: "Done",
+        message: res.data.message,
+        color: "blue",
+      });
+    } catch (err) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(err, "Failed to remove students."),
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <Container
-      size="lg"
-      style={{
-        width: "100%", // Ensure it takes full width but respects min width
-        display: "flex", // Use flexbox to center the content
-        justifyContent: "center", // Horizontally centers the content
-        marginTop: "25px",
-      }}
-    >
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{
-          minWidth: "75rem", // Set the minimum width to 75rem
-          width: "100%", // Ensure it is responsive
-          padding: "30px",
-          margin: "auto", // Center the Paper component
-        }}
-      >
-        <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
-          View Mess Registrations
-        </Title>
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Manage Mess Registrations
+      </Text>
 
-        <Space h="md" />
-        <form>
-          {/* Mess and Roll Number Fields */}
-          <Group grow mb="md">
-            <Select
-              label="Mess*"
-              placeholder="Select Mess"
-              value={mess}
-              onChange={setMess}
-              data={["Mess 1", "Mess 2"]}
-            />
-            <TextInput
-              label="Roll No*"
-              placeholder="Student Roll Number Here"
-              value={rollNo}
-              onChange={(event) => setRollNo(event.currentTarget.value)}
-            />
-          </Group>
+      <Space h="md" />
+      <form onSubmit={(e) => e.preventDefault()}>
+        <Group grow mb="md">
+          <Select
+            label="Mess*"
+            placeholder="Select Mess"
+            value={mess}
+            onChange={setMess}
+            data={[
+              { value: "mess1", label: "Mess 1" },
+              { value: "mess2", label: "Mess 2" },
+            ]}
+          />
+          <TextInput
+            label="Roll No*"
+            placeholder="Student Roll Number Here"
+            value={rollNo}
+            onChange={(e) => setRollNo(e.currentTarget.value)}
+          />
+          <TextInput
+            label="Initial Balance (for Add)"
+            placeholder="Amount"
+            value={amount}
+            onChange={(e) => setAmount(e.currentTarget.value)}
+            type="number"
+          />
+        </Group>
 
-          {/* Buttons for Search, Add, Remove */}
-          <Group
-            spacing="sm"
-            mb="md"
-            position="center" // Center the buttons horizontally
-          >
-            <Button
-              leftIcon={<MagnifyingGlass size={18} />} // Search icon
-              onClick={() => {
-                console.log("Searching for Roll No:", rollNo);
-              }}
-            >
-              Search
-            </Button>
-            <Button
-              leftIcon={<PlusCircle size={18} />} // New PlusCircle icon
-              color="green"
-              onClick={() => {
-                console.log("Adding Roll No:", rollNo);
-              }}
-            >
-              Add
-            </Button>
-            <Button
-              leftIcon={<TrashSimple size={18} />} // Replacing Trash with TrashSimple
-              color="red"
-              onClick={() => {
-                console.log("Removing Roll No:", rollNo);
-              }}
-            >
-              Remove
-            </Button>
-          </Group>
+        {studentInfo && (
+          <Alert color="blue" mb="md">
+            <Text fw={600}>{studentInfo.student_id}</Text>
+            <Text size="sm">Status: {studentInfo.current_mess_status}</Text>
+            <Text size="sm">Mess: {studentInfo.mess_option}</Text>
+            <Text size="sm">Balance: ₹{studentInfo.balance}</Text>
+          </Alert>
+        )}
 
-          {/* Remove All Buttons */}
-          <Group
-            spacing="sm"
-            mb="md"
-            position="center" // Center the buttons horizontally
-          >
-            <Button
-              variant="outline"
-              color="red"
-              onClick={() => {
-                console.log("Remove all from Mess 1");
-              }}
-            >
-              Remove All from Mess 1
-            </Button>
-            <Button
-              variant="outline"
-              color="red"
-              onClick={() => {
-                console.log("Remove all from Mess 2");
-              }}
-            >
-              Remove All from Mess 2
-            </Button>
-          </Group>
-
-          {/* File Upload for Excel */}
-          <Group direction="column" spacing="sm" mb="md">
-            <Title order={6}>Add by uploading Excel</Title>
-            <FileInput
-              placeholder="Choose File"
-              value={excelFile}
-              onChange={setExcelFile}
-              accept=".xlsx,.xls"
-              icon={<FileArrowUp size={18} />} // Updated to FileArrowUp icon
-            />
-          </Group>
-
-          {/* Register All Button */}
+        <Group gap="sm" mb="md" justify="center">
           <Button
-            leftIcon={<FileArrowUp size={18} />} // Updated icon for Register All
-            fullWidth
-            color="blue"
-            onClick={() => {
-              console.log("Register all from file:", excelFile);
-            }}
+            leftSection={<MagnifyingGlass size={18} />}
+            onClick={handleSearch}
+            loading={searching}
           >
-            Register All
+            Search
           </Button>
+          <Button
+            leftSection={<PlusCircle size={18} />}
+            color="green"
+            onClick={handleAdd}
+            loading={loading}
+          >
+            Add
+          </Button>
+          <Button
+            leftSection={<TrashSimple size={18} />}
+            color="red"
+            onClick={handleRemove}
+            loading={loading}
+          >
+            Remove
+          </Button>
+        </Group>
 
-          {/* Notes */}
-          <Space h="lg" />
-          <div style={{ fontSize: "12px", color: "gray" }}>
-            <ul>
-              <li>
-                The excel sheet should only contain three columns including the
-                heading - Roll no, Balance, mess_option.
-              </li>
-              <li>File should be in .xlsx or .xls format.</li>
-              <li>
-                This registration will add the Students to the provided
-                mess_option.
-              </li>
-            </ul>
-          </div>
-        </form>
-      </Paper>
-    </Container>
+        <Group gap="sm" mb="md" justify="center">
+          <Button
+            variant="outline"
+            color="red"
+            onClick={() => handleRemoveAll("mess1")}
+            loading={loading}
+          >
+            Remove All from Mess 1
+          </Button>
+          <Button
+            variant="outline"
+            color="red"
+            onClick={() => handleRemoveAll("mess2")}
+            loading={loading}
+          >
+            Remove All from Mess 2
+          </Button>
+        </Group>
+
+        <Text size="sm" fw={600} mb="sm">
+          Add by uploading Excel
+        </Text>
+        <FileInput
+          placeholder="Choose File"
+          value={excelFile}
+          onChange={setExcelFile}
+          accept=".xlsx,.xls"
+          leftSection={<FileArrowUp size={18} />}
+          mb="md"
+        />
+
+        <Button
+          leftSection={<FileArrowUp size={18} />}
+          fullWidth
+          color="blue"
+          onClick={() => {
+            notifications.show({
+              title: "Info",
+              message: "Excel bulk registration not yet implemented.",
+              color: "blue",
+            });
+          }}
+        >
+          Register All
+        </Button>
+
+        <Space h="lg" />
+        <div style={{ fontSize: "12px", color: "gray" }}>
+          <ul>
+            <li>
+              The excel sheet should only contain three columns including the
+              heading - Roll no, Balance, mess_option.
+            </li>
+            <li>File should be in .xlsx or .xls format.</li>
+            <li>
+              This registration will add the Students to the provided
+              mess_option.
+            </li>
+          </ul>
+        </div>
+      </form>
+    </Card>
   );
 }
 

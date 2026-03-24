@@ -1,12 +1,4 @@
-import {
-  Button,
-  Container,
-  Flex,
-  Grid,
-  Loader,
-  Tabs,
-  Text,
-} from "@mantine/core";
+import { Button, Container, Flex, Loader, Tabs, Text } from "@mantine/core";
 import { CaretCircleLeft, CaretCircleRight } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import classes from "../styles/messModule.module.css";
@@ -110,11 +102,7 @@ function UpdatePayments() {
       </Flex>
 
       {/* Main content */}
-      <Grid>
-        <Container fluid style={{ maxWidth: "1000px", margin: "0 auto" }}>
-          {renderTabContent()}
-        </Container>
-      </Grid>
+      <Container fluid>{renderTabContent()}</Container>
     </>
   );
 }

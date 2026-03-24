@@ -1,16 +1,7 @@
 import React, { useState, useEffect } from "react";
-import {
-  Table,
-  Container,
-  Paper,
-  Title,
-  Button,
-  TextInput,
-  Flex,
-  Text,
-} from "@mantine/core";
+import { Table, Card, Button, TextInput, Flex, Text } from "@mantine/core";
 import * as PhosphorIcons from "@phosphor-icons/react";
-import { rebateRoute } from "../routes";
+import { fetchRebateRequests, updateRebateRequest } from "../api";
 
 function RespondToRebateRequest() {
   const [rebateData, setRebateData] = useState([]);
@@ -20,22 +11,11 @@ function RespondToRebateRequest() {
   const [activeTab, setActiveTab] = useState("pending");
 
   useEffect(() => {
-    const fetchRebateRequests = async () => {
+    const loadRebateRequests = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(rebateRoute, {
-          method: "GET",
-          headers: {
-            Authorization: `Token ${authToken}`,
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (!response.ok)
-          throw new Error(`HTTP error! status: ${response.status}`);
-
-        const data = await response.json();
+        const data = await fetchRebateRequests(authToken);
         setRebateData(
           data.payload.map((item) => ({
             ...item,
@@ -56,7 +36,7 @@ function RespondToRebateRequest() {
       }
     };
 
-    fetchRebateRequests();
+    loadRebateRequests();
   }, [authToken]);
 
   // Update remark using a unique identifier (assumed item.id exists)
@@ -77,15 +57,8 @@ function RespondToRebateRequest() {
     };
 
     try {
-      const response = await fetch(rebateRoute, {
-        method: "PUT",
-        headers: {
-          Authorization: `Token ${authToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updatedRequest),
-      });
-      if (response.ok) {
+      const response = await updateRebateRequest(updatedRequest, authToken);
+      if (response.status === 200) {
         setRebateData((prev) =>
           prev.map((r) =>
             r.id === id
@@ -157,32 +130,32 @@ function RespondToRebateRequest() {
     ));
 
   return loading ? (
-    <Text align="center">Loading data...</Text>
+    <Text ta="center">Loading data...</Text>
   ) : error ? (
-    <Text color="red" align="center">
+    <Text color="red" ta="center">
       {error}
     </Text>
   ) : (
-    <Container size="lg" mt={30} miw="75rem">
-      <Paper shadow="md" radius="md" p="lg" withBorder>
-        <Title order={2} align="center" mb="lg">
-          Respond to Rebate Request
-        </Title>
-        <Flex justify="center" gap={20} mb={30}>
-          {["pending", "approved", "declined"].map((tab) => (
-            <Button
-              key={tab}
-              leftSection={<PhosphorIcons.Clock size={20} />}
-              variant={activeTab === tab ? "filled" : "outline"}
-              onClick={() => setActiveTab(tab)}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Button>
-          ))}
-        </Flex>
-        {getFilteredRebateData().length === 0 ? (
-          <Text align="center">No {activeTab} requests.</Text>
-        ) : (
+    <Card shadow="sm" p="lg" radius="md" withBorder>
+      <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
+        Respond to Rebate Request
+      </Text>
+      <Flex justify="center" gap={20} mb={30}>
+        {["pending", "approved", "declined"].map((tab) => (
+          <Button
+            key={tab}
+            leftSection={<PhosphorIcons.Clock size={20} />}
+            variant={activeTab === tab ? "filled" : "outline"}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+          </Button>
+        ))}
+      </Flex>
+      {getFilteredRebateData().length === 0 ? (
+        <Text ta="center">No {activeTab} requests.</Text>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
           <Table striped highlightOnHover withColumnBorders>
             <Table.Thead>
               <Table.Tr>
@@ -198,9 +171,9 @@ function RespondToRebateRequest() {
             </Table.Thead>
             <Table.Tbody>{renderRows()}</Table.Tbody>
           </Table>
-        )}
-      </Paper>
-    </Container>
+        </div>
+      )}
+    </Card>
   );
 }
 

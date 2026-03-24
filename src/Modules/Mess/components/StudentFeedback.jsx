@@ -9,46 +9,58 @@ import {
   Group,
 } from "@mantine/core"; // Mantine UI components
 import { PencilSimple, FunnelSimple } from "@phosphor-icons/react"; // Phosphor Icons
-import axios from "axios";
-import { feedbackRoute } from "../routes";
+import { notifications } from "@mantine/notifications";
+import { getApiErrorMessage, submitFeedback } from "../api";
 
 function StudentFeedback() {
-  const [messOption, setMessOption] = useState("Mess 1");
-  const [feedbackType, setFeedbackType] = useState("Cleanliness");
+  const [messOption, setMessOption] = useState("mess1");
+  const [feedbackType, setFeedbackType] = useState("cleanliness");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (description.trim() === "") {
-      alert("Feedback cannot be empty!");
+      notifications.show({
+        title: "Validation Error",
+        message: "Feedback cannot be empty",
+        color: "red",
+      });
       return;
     }
     try {
       setIsSubmitting(true);
       const token = localStorage.getItem("authToken"); // Get the token from local storage
-      const response = await axios.post(
-        feedbackRoute,
+      const response = await submitFeedback(
         {
           mess: messOption, // Need to change the mess option based on the registration
           feedback_type: feedbackType,
           description,
         },
-        {
-          headers: {
-            authorization: `Token ${token}`, // Pass the token in the Authorization header
-          },
-        },
+        token,
       );
-      console.log(response);
       if (response.status === 200) {
-        alert("Feedback submitted successfully!");
+        notifications.show({
+          title: "Success",
+          message: "Feedback submitted successfully",
+          color: "green",
+        });
         setDescription(""); // Clear the textarea after submission
       } else {
-        alert("Failed to submit description");
+        notifications.show({
+          title: "Error",
+          message: "Failed to submit feedback",
+          color: "red",
+        });
       }
     } catch (error) {
-      console.error("Error submitting description:", error);
-      alert("An error occurred. Please try again.");
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(
+          error,
+          "An error occurred. Please try again.",
+        ),
+        color: "red",
+      });
     } finally {
       setIsSubmitting(false); // Reset submission state
     }
@@ -74,7 +86,12 @@ function StudentFeedback() {
           Submit Feedback
         </Title>
 
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+        >
           {/* Dropdown for mess option */}
           <Group grow mb="lg">
             <Select
@@ -82,7 +99,10 @@ function StudentFeedback() {
               placeholder="Choose Mess"
               value={messOption}
               onChange={setMessOption}
-              data={["Mess 1", "Mess 2"]}
+              data={[
+                { value: "mess1", label: "Mess 1" },
+                { value: "mess2", label: "Mess 2" },
+              ]}
               radius="md"
               size="md"
               icon={<FunnelSimple size={18} />} // Phosphor icon
@@ -96,7 +116,12 @@ function StudentFeedback() {
               placeholder="Select Feedback Type"
               value={feedbackType}
               onChange={setFeedbackType}
-              data={["Cleanliness", "Food", "Maintenance", "Others"]}
+              data={[
+                { value: "cleanliness", label: "Cleanliness" },
+                { value: "food", label: "Food" },
+                { value: "maintenance", label: "Maintenance" },
+                { value: "others", label: "Others" },
+              ]}
               radius="md"
               size="md"
               icon={<FunnelSimple size={18} />} // Phosphor icon
@@ -124,7 +149,6 @@ function StudentFeedback() {
             radius="md"
             color="blue"
             type="submit"
-            onClick={handleSubmit}
             disabled={isSubmitting}
             leftIcon={<PencilSimple size={18} />} // Phosphor icon
           >

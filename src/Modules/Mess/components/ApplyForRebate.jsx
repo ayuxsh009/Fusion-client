@@ -1,131 +1,131 @@
 import React, { useState } from "react";
-import {
-  Button,
-  Container,
-  Title,
-  Paper,
-  Space,
-  Textarea,
-  Grid,
-} from "@mantine/core";
-import { DateInput } from "@mantine/dates";
-import { Calendar } from "@phosphor-icons/react";
-import "@mantine/dates/styles.css";
-import "dayjs/locale/en";
-import { rebateRoute } from "../routes";
+import { Button, Paper, TextInput, Textarea, Title } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
+import { submitRebateApplication, getApiErrorMessage } from "../api";
 
-function RebateApplication() {
-  const [rebateFromDate, setRebateFromDate] = useState(null);
-  const [rebateToDate, setRebateToDate] = useState(null);
+function ApplyForRebate() {
   const [purpose, setPurpose] = useState("");
-  const today = new Date();
-  const minstartdate = new Date();
-  minstartdate.setDate(today.getDate() + 3);
-
-  const formatDate = (date) =>
-    date ? new Date(date).toISOString().split("T")[0] : "";
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowISO = tomorrow.toISOString().split("T")[0];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const authToken = localStorage.getItem("authToken");
-
-    const formData = {
-      start_date: formatDate(rebateFromDate),
-      end_date: formatDate(rebateToDate),
-      purpose,
-      status: "1",
-      app_date: formatDate(new Date()),
-      leave_type: "rebate",
-    };
-
-    try {
-      const response = await fetch(rebateRoute, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Token ${authToken}`,
-        },
-        body: JSON.stringify(formData),
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      notifications.show({
+        title: "Error",
+        message: "Not authenticated",
+        color: "red",
       });
+      return;
+    }
+    if (!startDate || !endDate || !purpose) {
+      notifications.show({
+        title: "Error",
+        message: "All fields are required",
+        color: "red",
+      });
+      return;
+    }
 
-      const result = await response.json();
-      if (result.status === 3) {
-        alert(result.message);
-      } else if (response.ok) {
-        alert(result.message || "Rebate application submitted successfully!");
-      } else {
-        alert(result.message || "Failed to submit the rebate application.");
-      }
-    } catch (error) {
-      console.error("Error submitting rebate application:", error);
-      alert("An error occurred while submitting the form.");
+    if (startDate < tomorrowISO) {
+      notifications.show({
+        title: "Error",
+        message: "Rebate start date must be a future date",
+        color: "red",
+      });
+      return;
+    }
+
+    if (endDate < startDate) {
+      notifications.show({
+        title: "Error",
+        message: "End date cannot be before start date",
+        color: "red",
+      });
+      return;
+    }
+
+    if (purpose.trim().length < 3) {
+      notifications.show({
+        title: "Error",
+        message: "Purpose must be at least 3 characters",
+        color: "red",
+      });
+      return;
+    }
+
+    const payload = {
+      purpose: purpose.trim(),
+      start_date: startDate,
+      end_date: endDate,
+    };
+    setLoading(true);
+    try {
+      await submitRebateApplication(payload, token);
+      notifications.show({
+        title: "Success",
+        message: "Rebate application submitted",
+        color: "green",
+      });
+      setPurpose("");
+      setStartDate("");
+      setEndDate("");
+    } catch (err) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(err, "Submission failed"),
+        color: "red",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <Container
-      size="lg"
-      style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}
-    >
-      <Paper
-        shadow="md"
-        radius="md"
-        p="xl"
-        withBorder
-        style={{ width: "100%", minWidth: "70rem", padding: "2rem" }}
-      >
-        <Title order={2} align="center" mb="lg" style={{ color: "#1c7ed6" }}>
-          Rebate Application Form
-        </Title>
-        <form onSubmit={handleSubmit}>
-          <Grid grow>
-            <Grid.Col span={6}>
-              <DateInput
-                label="Rebate From"
-                placeholder="MM/DD/YYYY"
-                minDate={minstartdate}
-                value={rebateFromDate}
-                onChange={setRebateFromDate}
-                required
-                radius="md"
-                size="md"
-                icon={<Calendar size={20} />}
-                mb="lg"
-              />
-            </Grid.Col>
-            <Grid.Col span={6}>
-              <DateInput
-                label="Rebate To"
-                placeholder="MM/DD/YYYY"
-                minDate={rebateFromDate}
-                value={rebateToDate}
-                onChange={setRebateToDate}
-                required
-                radius="md"
-                size="md"
-                icon={<Calendar size={20} />}
-                mb="lg"
-              />
-            </Grid.Col>
-          </Grid>
-          <Textarea
-            label="Purpose"
-            placeholder="Enter the purpose of the rebate"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            required
-            radius="md"
-            size="md"
-            mb="lg"
-          />
-          <Space h="xl" />
-          <Button type="submit" fullWidth size="md" radius="md" color="blue">
-            Submit
-          </Button>
-        </form>
-      </Paper>
-      <Space h="xl" />
-    </Container>
+    <Paper shadow="md" radius="md" p="lg" withBorder mt="lg">
+      <Title order={3} mb="md">
+        Apply for Rebate
+      </Title>
+      <form onSubmit={handleSubmit}>
+        <TextInput
+          label="Start Date"
+          placeholder="YYYY-MM-DD"
+          type="date"
+          value={startDate}
+          onChange={(event) => setStartDate(event.currentTarget.value)}
+          min={tomorrowISO}
+          mb="md"
+          required
+        />
+        <TextInput
+          label="End Date"
+          placeholder="YYYY-MM-DD"
+          type="date"
+          value={endDate}
+          onChange={(event) => setEndDate(event.currentTarget.value)}
+          min={startDate || tomorrowISO}
+          mb="md"
+          required
+        />
+        <Textarea
+          label="Purpose"
+          placeholder="Enter reason for rebate"
+          value={purpose}
+          onChange={(e) => setPurpose(e.target.value)}
+          mb="md"
+          required
+        />
+        <Button type="submit" loading={loading} fullWidth>
+          Submit Application
+        </Button>
+      </form>
+    </Paper>
   );
 }
-export default RebateApplication;
+
+export default ApplyForRebate;

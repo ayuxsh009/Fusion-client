@@ -127,9 +127,57 @@ export const showDeleteFailureNotification = (itemType) => {
   });
 };
 
+const parseApiErrorMessage = (error) => {
+  const data = error?.response?.data;
+
+  if (!data) {
+    return "";
+  }
+
+  if (typeof data === "string") {
+    return data;
+  }
+
+  const valueToText = (value) => {
+    if (typeof value === "string") {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value.map(valueToText).filter(Boolean).join(", ");
+    }
+
+    if (value && typeof value === "object") {
+      return Object.entries(value)
+        .map(([key, val]) => {
+          const parsed = valueToText(val);
+          return parsed ? `${key}: ${parsed}` : "";
+        })
+        .filter(Boolean)
+        .join(" | ");
+    }
+
+    return value ? String(value) : "";
+  };
+
+  const prioritizedKeys = ["message", "error", "detail", "reason", "non_field_errors"];
+
+  for (const key of prioritizedKeys) {
+    if (data[key]) {
+      const parsed = valueToText(data[key]);
+      if (parsed) {
+        return parsed;
+      }
+    }
+  }
+
+  return valueToText(data);
+};
+
 // API Error handling with specific actions
 export const showApiErrorNotification = (error, itemType = "item", refreshCallback = null) => {
   let title, message, color, autoClose;
+  const backendReason = parseApiErrorMessage(error);
 
   if (error.response) {
     const status = error.response.status;
@@ -138,7 +186,7 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
     switch (status) {
       case 404:
         title = `🔍 ${itemType} Not Found`;
-        message = errorData?.message || `The ${itemType.toLowerCase()} you're trying to access doesn't exist.`;
+        message = backendReason || errorData?.message || `The ${itemType.toLowerCase()} you're trying to access doesn't exist.`;
         color = "orange";
         autoClose = 8000;
         
@@ -150,7 +198,7 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
         
       case 400:
         title = `❌ Invalid ${itemType} Operation`;
-        message = errorData?.message || `The ${itemType.toLowerCase()} operation is not valid.`;
+        message = backendReason || errorData?.message || `The ${itemType.toLowerCase()} operation is not valid.`;
         color = "red";
         autoClose = 7000;
         break;
@@ -164,14 +212,14 @@ export const showApiErrorNotification = (error, itemType = "item", refreshCallba
         
       case 500:
         title = `🛠️ Server Error`;
-        message = `Server error occurred while processing ${itemType.toLowerCase()}.`;
+        message = backendReason || `Server error occurred while processing ${itemType.toLowerCase()}.`;
         color = "red";
         autoClose = 8000;
         break;
         
       default:
         title = `❌ ${itemType} Operation Failed`;
-        message = errorData?.message || `Failed to process ${itemType.toLowerCase()}.`;
+        message = backendReason || errorData?.message || `Failed to process ${itemType.toLowerCase()}.`;
         color = "red";
         autoClose = 6000;
     }
