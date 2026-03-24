@@ -25,5 +25,3 @@ dist-ssr
 
 #Package-lock.json
 package-lock.json
-.venv311
-.venv
