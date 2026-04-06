@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Table, Card, Text, Button, Flex } from "@mantine/core";
-import { fetchFeedbackList } from "../api";
+import { Table, Card, Text, Button, Flex, Alert, Loader } from "@mantine/core";
+import { fetchFeedbackList, getApiErrorMessage } from "../api";
 
 const tableHeader = [
   "Date",
@@ -31,6 +31,8 @@ function ViewFeedback() {
   const [activeTab, setActiveTab] = useState("food");
   const [feedbackData, setFeedbackData] = useState([]);
   const [reviewedFeedback, setReviewedFeedback] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const authToken = localStorage.getItem("authToken");
 
   useEffect(() => {
@@ -45,14 +47,18 @@ function ViewFeedback() {
   }, []);
 
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     fetchFeedbackList(authToken)
       .then((response) => response.data)
       .then((data) => {
         setFeedbackData(data.payload || []);
       })
       .catch((error) => {
+        setError(getApiErrorMessage(error, "Failed to fetch feedback data."));
         console.error("Error fetching feedback data:", error);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [authToken]);
 
   const markAsRead = (feedback) => {
@@ -144,15 +150,24 @@ function ViewFeedback() {
         </Button>
       </Flex>
 
-      {/* Feedback Table */}
-      <div style={{ overflowX: "auto" }}>
-        <Table striped highlightOnHover withColumnBorders>
-          <Table.Thead>
-            <Table.Tr>{renderHeader(tableHeader)}</Table.Tr>
-          </Table.Thead>
-          <Table.Tbody>{renderRows()}</Table.Tbody>
-        </Table>
-      </div>
+      {loading ? (
+        <Flex justify="center" align="center" style={{ minHeight: "180px" }}>
+          <Loader />
+        </Flex>
+      ) : error ? (
+        <Alert color="red" title="Error">
+          {error}
+        </Alert>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <Table striped highlightOnHover withColumnBorders>
+            <Table.Thead>
+              <Table.Tr>{renderHeader(tableHeader)}</Table.Tr>
+            </Table.Thead>
+            <Table.Tbody>{renderRows()}</Table.Tbody>
+          </Table>
+        </div>
+      )}
     </Card>
   );
 }

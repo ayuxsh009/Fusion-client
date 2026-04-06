@@ -73,7 +73,7 @@ function DateSelectionForm() {
         title: "Error",
         message: getApiErrorMessage(
           err,
-          "Something went wrong. Please try again later.",
+          "Unable to update semester dates.",
         ),
         color: "red",
         position: "top-center",

@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import {
   fetchDeregistrationRequests,
   getApiErrorMessage,
+  getApiPayloadMessage,
   updateDeregistrationRequest,
 } from "../api";
 
@@ -30,7 +31,7 @@ function ViewDeregistrationRequests() {
           })),
         );
       } catch (err) {
-        setError("Error fetching data");
+        setError(getApiErrorMessage(err, "Failed to fetch deregistration requests."));
       } finally {
         setLoading(false);
       }
@@ -58,7 +59,8 @@ function ViewDeregistrationRequests() {
         localStorage.getItem("authToken"),
       );
 
-      if (response.status === 200) {
+      const apiStatus = Number(response?.data?.status || response.status || 0);
+      if (apiStatus === 200) {
         setDeregistrationData((prevData) =>
           prevData.map((request, i) =>
             i === index ? { ...request, status: newStatus } : request,
@@ -70,14 +72,19 @@ function ViewDeregistrationRequests() {
           color: "green",
         });
       } else {
+        const message = getApiPayloadMessage(
+          response?.data,
+          "Unable to update request.",
+        );
         notifications.show({
           title: "Error",
-          message: "Failed to update request",
+          message,
           color: "red",
         });
+        setError(message);
       }
     } catch (err) {
-      const message = getApiErrorMessage(err, "Error updating request");
+      const message = getApiErrorMessage(err, "Unable to update request.");
       setError(message);
       notifications.show({
         title: "Error",

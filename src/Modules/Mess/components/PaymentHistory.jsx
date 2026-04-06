@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { Table, Text, Card, Flex } from "@mantine/core";
-import { fetchPaymentHistory } from "../api";
+import { Table, Text, Card, Flex, Alert, Loader } from "@mantine/core";
+import { fetchPaymentHistory, getApiErrorMessage } from "../api";
 
 function PaymentHistory() {
   // const roleno = useSelector((state) => state.user.roll_no); // Use Redux state to get roll number
   const [paymentData, setPaymentData] = useState([]); // Store payment data
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const authToken = localStorage.getItem("authToken"); // Authorization token
 
   // Fetch payment data from API
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     fetchPaymentHistory(authToken)
       .then((response) => response.data)
       .then((data) => {
@@ -22,8 +26,10 @@ function PaymentHistory() {
         setPaymentData(mappedData);
       })
       .catch((error) => {
+        setError(getApiErrorMessage(error, "Failed to fetch payment history."));
         console.error("Error fetching payment data:", error);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [authToken]);
 
   // Render table header
@@ -83,19 +89,30 @@ function PaymentHistory() {
         Payment History
       </Text>
 
-      {/* Table */}
-      <div style={{ overflowX: "auto" }}>
-        <Table striped highlightOnHover withColumnBorders>
-          <Table.Thead>{renderHeader()}</Table.Thead>
-          <Table.Tbody>{renderRows()}</Table.Tbody>
-        </Table>
-      </div>
+      {loading ? (
+        <Flex justify="center" align="center" style={{ minHeight: "180px" }}>
+          <Loader />
+        </Flex>
+      ) : error ? (
+        <Alert color="red" title="Error">
+          {error}
+        </Alert>
+      ) : (
+        <>
+          <div style={{ overflowX: "auto" }}>
+            <Table striped highlightOnHover withColumnBorders>
+              <Table.Thead>{renderHeader()}</Table.Thead>
+              <Table.Tbody>{renderRows()}</Table.Tbody>
+            </Table>
+          </div>
 
-      <Flex direction="column" mt="lg">
-        <Text size="lg" fw={700} ta="center" mt="md">
-          Total Payments: ₹{totalPayments}
-        </Text>
-      </Flex>
+          <Flex direction="column" mt="lg">
+            <Text size="lg" fw={700} ta="center" mt="md">
+              Total Payments: ₹{totalPayments}
+            </Text>
+          </Flex>
+        </>
+      )}
     </Card>
   );
 }

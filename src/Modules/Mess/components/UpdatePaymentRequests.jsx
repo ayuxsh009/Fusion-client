@@ -10,7 +10,12 @@ import {
   TextInput,
 } from "@mantine/core";
 import { useSelector } from "react-redux";
-import { fetchBalanceRequests, updateBalanceRequest } from "../api";
+import {
+  fetchBalanceRequests,
+  getApiErrorMessage,
+  getApiPayloadMessage,
+  updateBalanceRequest,
+} from "../api";
 
 const tableHeaders = [
   "Student ID",
@@ -50,7 +55,9 @@ function ViewUpdatePaymentRequests() {
           setError("No payment request data found.");
         }
       } catch (errors) {
-        setError("Error fetching payment request data.");
+        setError(
+          getApiErrorMessage(errors, "Failed to fetch payment request data."),
+        );
         console.error(errors);
       } finally {
         setLoading(false);
@@ -77,13 +84,25 @@ function ViewUpdatePaymentRequests() {
         status,
         update_payment_remark: item.remark || "",
       };
-      await updateBalanceRequest(payload, token);
-      setUpdatePaymentData((prevData) =>
-        prevData.filter((items) => items.id !== id),
-      );
+      const response = await updateBalanceRequest(payload, token);
+      const apiStatus = Number(response?.data?.status || response.status || 0);
+      if (apiStatus === 200) {
+        setUpdatePaymentData((prevData) =>
+          prevData.filter((items) => items.id !== id),
+        );
+      } else {
+        setError(
+          getApiPayloadMessage(
+            response?.data,
+            "Unable to update payment request.",
+          ),
+        );
+      }
     } catch (errors) {
       console.error(`Error updating payment request ${status}:`, errors);
-      setError(`Error updating payment request: ${errors.message}`);
+      setError(
+        getApiErrorMessage(errors, "Unable to update payment request."),
+      );
     }
   };
 

@@ -10,7 +10,11 @@ import {
 } from "@mantine/core"; // Mantine UI components
 import { PencilSimple, FunnelSimple } from "@phosphor-icons/react"; // Phosphor Icons
 import { notifications } from "@mantine/notifications";
-import { getApiErrorMessage, submitFeedback } from "../api";
+import {
+  getApiErrorMessage,
+  getApiPayloadMessage,
+  submitFeedback,
+} from "../api";
 
 function StudentFeedback() {
   const [messOption, setMessOption] = useState("mess1");
@@ -38,7 +42,8 @@ function StudentFeedback() {
         },
         token,
       );
-      if (response.status === 200) {
+      const apiStatus = Number(response?.data?.status || response.status || 0);
+      if (apiStatus === 200) {
         notifications.show({
           title: "Success",
           message: "Feedback submitted successfully",
@@ -48,7 +53,10 @@ function StudentFeedback() {
       } else {
         notifications.show({
           title: "Error",
-          message: "Failed to submit feedback",
+          message: getApiPayloadMessage(
+            response?.data,
+            "Unable to submit feedback.",
+          ),
           color: "red",
         });
       }
@@ -57,7 +65,7 @@ function StudentFeedback() {
         title: "Error",
         message: getApiErrorMessage(
           error,
-          "An error occurred. Please try again.",
+          "Unable to submit feedback.",
         ),
         color: "red",
       });

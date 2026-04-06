@@ -1,7 +1,11 @@
 import React, { useState } from "react";
 import { Button, Paper, TextInput, Textarea, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { submitRebateApplication, getApiErrorMessage } from "../api";
+import {
+  submitRebateApplication,
+  getApiErrorMessage,
+  getApiPayloadMessage,
+} from "../api";
 import PropTypes from "prop-types";
 
 function ApplyForRebate({ onSubmitted }) {
@@ -73,7 +77,10 @@ function ApplyForRebate({ onSubmitted }) {
       if (result?.data?.status && Number(result.data.status) !== 200) {
         notifications.show({
           title: "Error",
-          message: result.data.message || "Rebate request could not be submitted",
+          message: getApiPayloadMessage(
+            result.data,
+            "Rebate request could not be submitted.",
+          ),
           color: "red",
         });
         return;
@@ -91,7 +98,10 @@ function ApplyForRebate({ onSubmitted }) {
     } catch (err) {
       notifications.show({
         title: "Error",
-        message: getApiErrorMessage(err, "Submission failed"),
+        message: getApiErrorMessage(
+          err,
+          "Unable to submit rebate application.",
+        ),
         color: "red",
       });
     } finally {

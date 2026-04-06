@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Card, Text, Box, Table, Flex } from "@mantine/core";
+import { Card, Text, Box, Table, Flex, Alert } from "@mantine/core";
 import { useSelector } from "react-redux";
 import { host } from "../../../routes/globalRoutes";
-import { fetchBalanceRequestStatus } from "../api";
+import { fetchBalanceRequestStatus, getApiErrorMessage } from "../api";
 
 const fetchUpdateBalanceRequestsStatus = async (studentId, token) => {
   try {
@@ -16,6 +16,7 @@ const fetchUpdateBalanceRequestsStatus = async (studentId, token) => {
 
 function UpdateBalanceRequest() {
   const [balanceRequests, setBalanceRequests] = useState([]);
+  const [error, setError] = useState(null);
   const studentId = useSelector((state) => state.user.roll_no);
   const token = localStorage.getItem("authToken");
 
@@ -26,6 +27,12 @@ function UpdateBalanceRequest() {
         setBalanceRequests(data);
         console.log("Data:", data);
       } catch (error) {
+        setError(
+          getApiErrorMessage(
+            error,
+            "Failed to fetch update payment request status.",
+          ),
+        );
         console.error("Error fetching data:", error);
       }
     };
@@ -121,6 +128,12 @@ function UpdateBalanceRequest() {
       <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
         Update Balance Request Status
       </Text>
+
+      {error && (
+        <Alert color="red" title="Error" mb="md">
+          {error}
+        </Alert>
+      )}
 
       {/* FusionTable */}
       <div style={{ overflowX: "auto" }}>

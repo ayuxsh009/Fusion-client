@@ -2,7 +2,11 @@ import React, { useState } from "react";
 import { Paper, Button, Textarea, Title, Group, Box } from "@mantine/core";
 // import * as PhosphorIcons from "@phosphor-icons/react";
 import { notifications } from "@mantine/notifications";
-import { getApiErrorMessage, submitFeedback } from "../api";
+import {
+  getApiErrorMessage,
+  getApiPayloadMessage,
+  submitFeedback,
+} from "../api";
 
 // Styles
 const feedbackContainerStyle = {
@@ -75,7 +79,8 @@ function FeedbackPage() {
         },
         token,
       );
-      if (response.status === 200) {
+      const apiStatus = Number(response?.data?.status || response.status || 0);
+      if (apiStatus === 200) {
         notifications.show({
           title: "Success",
           message: "Feedback submitted successfully",
@@ -85,7 +90,10 @@ function FeedbackPage() {
       } else {
         notifications.show({
           title: "Error",
-          message: "Failed to submit feedback",
+          message: getApiPayloadMessage(
+            response?.data,
+            "Unable to submit feedback.",
+          ),
           color: "red",
         });
       }
@@ -94,7 +102,7 @@ function FeedbackPage() {
         title: "Error",
         message: getApiErrorMessage(
           error,
-          "An error occurred. Please try again.",
+          "Unable to submit feedback.",
         ),
         color: "red",
       });

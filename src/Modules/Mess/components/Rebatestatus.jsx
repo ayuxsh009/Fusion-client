@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Badge, Paper, Table, Text, Title } from "@mantine/core";
-import { fetchRebateRequests } from "../api";
+import { fetchRebateRequests, getApiErrorMessage } from "../api";
 import PropTypes from "prop-types";
 
 const STATUS_MAP = { "0": "Declined", "1": "Pending", "2": "Approved" };
@@ -28,7 +28,9 @@ function RebateStatus({ refreshToken }) {
     const token = localStorage.getItem("authToken");
     fetchRebateRequests(token)
       .then((data) => setRebateData(data.payload || []))
-      .catch((err) => setError(err.message || "Failed to load rebate data"))
+      .catch((err) =>
+        setError(getApiErrorMessage(err, "Failed to load rebate data.")),
+      )
       .finally(() => setLoading(false));
   }, [refreshToken]);
 

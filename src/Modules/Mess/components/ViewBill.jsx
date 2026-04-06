@@ -1,18 +1,31 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
-import { Table, Text, Button, Group, Card, Flex } from "@mantine/core";
+import {
+  Table,
+  Text,
+  Button,
+  Group,
+  Card,
+  Flex,
+  Alert,
+  Loader,
+} from "@mantine/core";
 import { DownloadSimple } from "@phosphor-icons/react";
-import { fetchMessStatus, fetchStudentBills } from "../api";
+import { fetchMessStatus, fetchStudentBills, getApiErrorMessage } from "../api";
 
 function MessBilling() {
   const rollNo = useSelector((state) => state.user.roll_no); // Use Redux state to get roll number
   const [billData, setBillData] = useState([]); // Store fetched bill data
   const [totalBalance, setTotalBalance] = useState(0); // Track total remaining balance
   const [messStatus, setMessStatus] = useState(""); // Track current mess status
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const authToken = localStorage.getItem("authToken"); // Authorization token
 
   // Fetch payment data from API
   useEffect(() => {
+    setLoading(true);
+    setError(null);
     fetchStudentBills(rollNo, authToken)
       .then((response) => response.data)
       .then((data) => {
@@ -29,8 +42,10 @@ function MessBilling() {
         }
       })
       .catch((error) => {
+        setError(getApiErrorMessage(error, "Failed to fetch bill details."));
         console.error("Error fetching payment data:", error);
-      });
+      })
+      .finally(() => setLoading(false));
   }, [authToken, rollNo]);
 
   useEffect(() => {
@@ -42,13 +57,16 @@ function MessBilling() {
         setMessStatus(data.payload.current_mess_status);
         setTotalBalance(data.payload.current_rem_balance);
       } catch (error) {
+        setError(
+          getApiErrorMessage(error, "Failed to fetch current mess status."),
+        );
         console.error("Error fetching registration status:", error);
       }
     };
     if (rollNo) {
       fetchRegistrationStatus();
     }
-  });
+  }, [authToken, rollNo]);
 
   const renderHeader = () => (
     <Table.Tr>
@@ -107,32 +125,43 @@ function MessBilling() {
         View Bill
       </Text>
 
-      {/* Table */}
-      <div style={{ overflowX: "auto" }}>
-        <Table striped highlightOnHover withColumnBorders>
-          <Table.Thead>{renderHeader()}</Table.Thead>
-          <Table.Tbody>{renderRows()}</Table.Tbody>
-        </Table>
-      </div>
+      {loading ? (
+        <Flex justify="center" align="center" style={{ minHeight: "180px" }}>
+          <Loader />
+        </Flex>
+      ) : error ? (
+        <Alert color="red" title="Error">
+          {error}
+        </Alert>
+      ) : (
+        <>
+          <div style={{ overflowX: "auto" }}>
+            <Table striped highlightOnHover withColumnBorders>
+              <Table.Thead>{renderHeader()}</Table.Thead>
+              <Table.Tbody>{renderRows()}</Table.Tbody>
+            </Table>
+          </div>
 
-      <Flex direction="column" mt="lg">
-        <Text size="lg" fw={700} mb="xs">
-          Total Remaining Balance: ₹{totalBalance}
-        </Text>
-        <Text size="lg" fw={600}>
-          Current Mess Status: {messStatus}
-        </Text>
-      </Flex>
+          <Flex direction="column" mt="lg">
+            <Text size="lg" fw={700} mb="xs">
+              Total Remaining Balance: ₹{totalBalance}
+            </Text>
+            <Text size="lg" fw={600}>
+              Current Mess Status: {messStatus}
+            </Text>
+          </Flex>
 
-      <Group justify="flex-end" mt="md">
-        <Button
-          variant="filled"
-          color="blue"
-          leftSection={<DownloadSimple size={16} />}
-        >
-          Download
-        </Button>
-      </Group>
+          <Group justify="flex-end" mt="md">
+            <Button
+              variant="filled"
+              color="blue"
+              leftSection={<DownloadSimple size={16} />}
+            >
+              Download
+            </Button>
+          </Group>
+        </>
+      )}
     </Card>
   );
 }

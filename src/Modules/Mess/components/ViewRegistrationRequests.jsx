@@ -63,7 +63,9 @@ function ViewRegistration() {
           setError("No registration data found.");
         }
       } catch (errors) {
-        setError("Error fetching registration data.");
+        setError(
+          getApiErrorMessage(errors, "Failed to fetch registration data."),
+        );
       } finally {
         setLoading(false);
       }
@@ -113,7 +115,7 @@ function ViewRegistration() {
         title: "Error",
         message: getApiErrorMessage(
           errors,
-          "Update the mess option before accepting.",
+          "Unable to update registration request.",
         ),
         color: "red",
       });

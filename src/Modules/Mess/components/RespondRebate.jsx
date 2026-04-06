@@ -2,7 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Table, Card, Button, TextInput, Flex, Text } from "@mantine/core";
 import * as PhosphorIcons from "@phosphor-icons/react";
 import { useSelector } from "react-redux";
-import { fetchRebateRequests, updateRebateRequest } from "../api";
+import {
+  fetchRebateRequests,
+  getApiErrorMessage,
+  getApiPayloadMessage,
+  updateRebateRequest,
+} from "../api";
 
 const normalizeStatus = (status) => {
   const value = String(status ?? "").trim().toLowerCase();
@@ -45,7 +50,7 @@ function RespondToRebateRequest() {
           })),
         );
       } catch (err) {
-        setError(err.message || "Failed to fetch rebate requests");
+        setError(getApiErrorMessage(err, "Failed to fetch rebate requests."));
       } finally {
         setLoading(false);
       }
@@ -77,7 +82,8 @@ function RespondToRebateRequest() {
 
     try {
       const response = await updateRebateRequest(updatedRequest, authToken);
-      if (response.status === 200) {
+      const apiStatus = Number(response?.data?.status || response.status || 0);
+      if (apiStatus === 200) {
         setRebateData((prev) =>
           prev.map((r) =>
             r.id === id
@@ -90,10 +96,15 @@ function RespondToRebateRequest() {
           ),
         );
       } else {
-        setError(`Failed to update approval: ${response.statusText}`);
+        setError(
+          getApiPayloadMessage(
+            response?.data,
+            "Failed to update rebate approval.",
+          ),
+        );
       }
-    } catch (errors) {
-      setError(`Error updating approval: ${errors.message}`);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to update rebate approval."));
     }
   };
 

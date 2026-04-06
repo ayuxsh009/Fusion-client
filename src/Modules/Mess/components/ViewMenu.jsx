@@ -9,7 +9,7 @@ import {
   Loader,
   Alert,
 } from "@mantine/core";
-import { fetchMenu } from "../api";
+import { fetchMenu, getApiErrorMessage } from "../api";
 
 const tableHeaders = ["Day", "Breakfast", "Lunch", "Dinner"];
 
@@ -34,7 +34,7 @@ function ViewMenu() {
         console.log("API Response Data:", response.data); // Debugging log to check data
         setMenuData(response.data.payload); // Assuming your response data is wrapped in "payload"
       } catch (errors) {
-        setError("Error fetching menu data.");
+        setError(getApiErrorMessage(errors, "Failed to fetch menu data."));
         console.error("Error fetching menu data:", errors);
       } finally {
         setLoading(false);

@@ -2,6 +2,7 @@ import { Button, Container, Flex, Loader, Tabs, Text } from "@mantine/core";
 import { CaretCircleLeft, CaretCircleRight } from "@phosphor-icons/react";
 import { useRef, useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { notifications } from "@mantine/notifications";
 import CustomBreadcrumbs from "../../../components/Breadcrumbs.jsx";
 import classes from "../styles/messModule.module.css";
 import UpdatePayments from "./UpdatePayments.jsx";
@@ -16,7 +17,7 @@ import MenuPollPage from "./MenuPollPage.jsx";
 import VacationSurveyPage from "./VacationSurveyPage.jsx";
 import RefundManagement from "./RefundManagement.jsx";
 import SpecialEventMeals from "./SpecialEventMeals.jsx";
-import { fetchStudentRegistrationStatus } from "../api";
+import { fetchStudentRegistrationStatus, getApiErrorMessage } from "../api";
 
 function Student() {
   const student_id = useSelector((state) => state.user.roll_no);
@@ -81,6 +82,14 @@ function Student() {
         );
         setRegistrationStatus(response.data.payload.current_mess_status);
       } catch (error) {
+        notifications.show({
+          title: "Error",
+          message: getApiErrorMessage(
+            error,
+            "Failed to fetch registration status.",
+          ),
+          color: "red",
+        });
         console.error("Error fetching registration status:", error);
       }
     };

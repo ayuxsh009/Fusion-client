@@ -11,7 +11,10 @@ import {
 } from "@mantine/core";
 import { MagnifyingGlass, FunnelSimple } from "@phosphor-icons/react";
 import { notifications } from "@mantine/notifications";
-import { fetchRegistrations as fetchRegistrationsApi } from "../api";
+import {
+  fetchRegistrations as fetchRegistrationsApi,
+  getApiErrorMessage,
+} from "../api";
 
 function ViewRegistrations() {
   const [filteredStudents, setFilteredStudents] = useState([]);
@@ -55,16 +58,16 @@ function ViewRegistrations() {
       }
       console.log("Filtered Students Length:", filteredStudents.length);
     } catch (error) {
+      const message = getApiErrorMessage(
+        error,
+        "Failed to fetch registration data.",
+      );
+      notifications.show({
+        title: "Error",
+        message,
+        color: "red",
+      });
       console.error("Error fetching registrations:", error);
-      if (error.response && error.response.status === 404) {
-        notifications.show({
-          title: "Student Not Found",
-          message: "The student does not exist.",
-          color: "red",
-        });
-      } else {
-        console.error("Error fetching registrations:", error);
-      }
     }
   };
 

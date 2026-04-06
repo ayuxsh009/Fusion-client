@@ -121,6 +121,46 @@ const extractFirstReadableMessage = (value, depth = 0) => {
   return "";
 };
 
+export const getApiPayloadMessage = (
+  data,
+  fallback = "Operation failed.",
+) => {
+  if (!data) {
+    return fallback;
+  }
+
+  if (typeof data === "string") {
+    const parsed = extractFirstReadableMessage(data);
+    return parsed || fallback;
+  }
+
+  if (typeof data === "object") {
+    const priorityKeys = [
+      "message",
+      "error",
+      "detail",
+      "reason",
+      "non_field_errors",
+      "errors",
+      "payload",
+    ];
+
+    const priorityMessage = priorityKeys
+      .map((key) => (data[key] ? stringifyValue(data[key]) : ""))
+      .find(Boolean);
+    if (priorityMessage) {
+      return priorityMessage;
+    }
+
+    const parsedObject = extractFirstReadableMessage(data);
+    if (parsedObject) {
+      return parsedObject;
+    }
+  }
+
+  return fallback;
+};
+
 export const getApiErrorMessage = (
   error,
   fallback = "Something went wrong.",
@@ -137,24 +177,21 @@ export const getApiErrorMessage = (
       return parsedString || fallback;
     }
 
-    const priorityKeys = [
-      "message",
-      "error",
-      "detail",
-      "reason",
-      "non_field_errors",
-    ];
-
-    const priorityMessage = priorityKeys
-      .map((key) => (data[key] ? stringifyValue(data[key]) : ""))
-      .find(Boolean);
-    if (priorityMessage) {
-      return priorityMessage;
+    const parsedDataMessage = getApiPayloadMessage(data, "");
+    if (parsedDataMessage) {
+      return parsedDataMessage;
     }
 
-    const parsedObject = extractFirstReadableMessage(data);
-    if (parsedObject) {
-      return parsedObject;
+    if (error.response?.status) {
+      const status = error.response.status;
+      const statusText = error.response.statusText || "";
+      return statusText
+        ? `Request failed (${status} ${statusText}).`
+        : `Request failed with status ${status}.`;
+    }
+
+    if (error.message) {
+      return error.message;
     }
 
     return fallback;

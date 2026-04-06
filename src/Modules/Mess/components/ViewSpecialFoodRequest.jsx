@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Table, Card, Text, Button, Flex, Loader, Alert } from "@mantine/core";
 import { useSelector } from "react-redux";
-import { fetchSpecialFoodRequests, updateSpecialFoodRequest } from "../api";
+import {
+  fetchSpecialFoodRequests,
+  getApiErrorMessage,
+  getApiPayloadMessage,
+  updateSpecialFoodRequest,
+} from "../api";
 
 const tableHeader = [
   "Date",
@@ -61,7 +66,9 @@ function ViewSpecialFoodRequest() {
         setFoodRequestData([]);
       }
     } catch (err) {
-      setError("Error fetching special food requests.");
+      setError(
+        getApiErrorMessage(err, "Failed to fetch special food requests."),
+      );
       console.error("Error fetching special food requests:", err);
     } finally {
       setLoading(false);
@@ -98,7 +105,8 @@ function ViewSpecialFoodRequest() {
 
       const response = await updateSpecialFoodRequest(payload, token);
 
-      if (response.data.status === 200) {
+      const apiStatus = Number(response?.data?.status || response.status || 0);
+      if (apiStatus === 200) {
         const normalizedStatus = normalizeStatus(newStatus);
         setFoodRequestData((prevData) =>
           prevData.map((item) =>
@@ -113,9 +121,21 @@ function ViewSpecialFoodRequest() {
         } else if (normalizedStatus === "0") {
           setActiveTab("rejected");
         }
+      } else {
+        setError(
+          getApiPayloadMessage(
+            response?.data,
+            "Unable to update special food request status.",
+          ),
+        );
       }
     } catch (err) {
-      setError("Failed to update request status.");
+      setError(
+        getApiErrorMessage(
+          err,
+          "Unable to update special food request status.",
+        ),
+      );
       console.error("PUT error:", err);
     }
   };
