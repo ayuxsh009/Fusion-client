@@ -19,6 +19,10 @@ function MessModulePage() {
     return <WardenIndex />;
   }
 
+  if (role === "mess_admin") {
+    return <WardenIndex />;
+  }
+
   return <Loader />;
 }
 

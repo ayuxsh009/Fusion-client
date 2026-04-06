@@ -8,6 +8,10 @@ import ViewFeedback from "./ViewFeedback.jsx";
 import MessAnnouncements from "./MessAnnouncements.jsx";
 import ViewRegistrations from "./ViewRegistration.jsx";
 import MessReports from "./MessReports.jsx";
+import RefundManagement from "./RefundManagement.jsx";
+import SpecialEventMeals from "./SpecialEventMeals.jsx";
+import RoleAssignmentManagement from "./RoleAssignmentManagement.jsx";
+import AuditComplianceDashboard from "./AuditComplianceDashboard.jsx";
 
 function Warden() {
   const [activeTab, setActiveTab] = useState("0");
@@ -19,6 +23,10 @@ function Warden() {
     { title: "View Announcements" },
     { title: "View Registrations" },
     { title: "Reports" },
+    { title: "Refund Management" },
+    { title: "Special Event Meals" },
+    { title: "Role Assignment" },
+    { title: "Audit & Compliance" },
   ];
 
   const handleTabChange = (direction) => {
@@ -46,6 +54,14 @@ function Warden() {
         return <ViewRegistrations />;
       case "4":
         return <MessReports />;
+      case "5":
+        return <RefundManagement />;
+      case "6":
+        return <SpecialEventMeals />;
+      case "7":
+        return <RoleAssignmentManagement />;
+      case "8":
+        return <AuditComplianceDashboard />;
       default:
         return <Loader />;
     }

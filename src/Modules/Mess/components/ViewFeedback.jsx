@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Table, Card, Text, Button, Flex } from "@mantine/core";
-import { deleteFeedback, fetchFeedbackList } from "../api";
+import { fetchFeedbackList } from "../api";
 
 const tableHeader = [
   "Date",
@@ -11,53 +11,58 @@ const tableHeader = [
   "Actions",
 ];
 
+const reviewedStorageKey = "mess_feedback_reviewed_keys";
+
+const getFeedbackKey = (feedback) => {
+  if (feedback?.id) {
+    return String(feedback.id);
+  }
+
+  return [
+    feedback?.student_id,
+    feedback?.mess,
+    feedback?.feedback_type,
+    feedback?.description,
+    feedback?.fdate,
+  ].join("|");
+};
+
 function ViewFeedback() {
   const [activeTab, setActiveTab] = useState("food");
   const [feedbackData, setFeedbackData] = useState([]);
+  const [reviewedFeedback, setReviewedFeedback] = useState(new Set());
   const authToken = localStorage.getItem("authToken");
+
+  useEffect(() => {
+    try {
+      const storedKeys = JSON.parse(
+        localStorage.getItem(reviewedStorageKey) || "[]",
+      );
+      setReviewedFeedback(new Set(storedKeys));
+    } catch (error) {
+      setReviewedFeedback(new Set());
+    }
+  }, []);
 
   useEffect(() => {
     fetchFeedbackList(authToken)
       .then((response) => response.data)
       .then((data) => {
-        setFeedbackData(
-          data.payload.map((feedback) => ({
-            ...feedback,
-            status: "Unread", // Initialize status
-          })),
-        );
+        setFeedbackData(data.payload || []);
       })
       .catch((error) => {
         console.error("Error fetching feedback data:", error);
       });
   }, [authToken]);
 
-  const markAsRead = (index, feedback) => {
-    deleteFeedback(
-      {
-        student_id: feedback.student_id,
-        mess: feedback.mess,
-        feedback_type: feedback.feedback_type,
-        description: feedback.description,
-        fdate: feedback.fdate,
-      },
-      authToken,
-    )
-      .then((response) => {
-        if (response.status === 200) {
-          // Update the status in the state instead of removing the item
-          setFeedbackData((prevData) =>
-            prevData.map((item, i) =>
-              i === index ? { ...item, status: "Read" } : item,
-            ),
-          );
-        } else {
-          console.error("Failed to delete feedback:", response.statusText);
-        }
-      })
-      .catch((error) => {
-        console.error("Error deleting feedback:", error);
-      });
+  const markAsRead = (feedback) => {
+    const feedbackKey = getFeedbackKey(feedback);
+    setReviewedFeedback((prev) => {
+      const next = new Set(prev);
+      next.add(feedbackKey);
+      localStorage.setItem(reviewedStorageKey, JSON.stringify(Array.from(next)));
+      return next;
+    });
   };
 
   const filteredFeedback = feedbackData.filter(
@@ -65,26 +70,31 @@ function ViewFeedback() {
   );
 
   const renderRows = () =>
-    filteredFeedback.map((item, index) => (
-      <Table.Tr key={index}>
+    filteredFeedback.map((item) => {
+      const feedbackKey = getFeedbackKey(item);
+      const isReviewed = reviewedFeedback.has(feedbackKey);
+
+      return (
+        <Table.Tr key={feedbackKey}>
         <Table.Td align="center">{item.fdate}</Table.Td>
         <Table.Td align="center">{item.student_id}</Table.Td>
         <Table.Td align="center">{item.description}</Table.Td>
         <Table.Td align="center">{item.mess}</Table.Td>
-        <Table.Td align="center">{item.status}</Table.Td>
+        <Table.Td align="center">{isReviewed ? "Reviewed" : "Unread"}</Table.Td>
         <Table.Td align="center">
           <Button
-            onClick={() => markAsRead(index, item)}
+            onClick={() => markAsRead(item)}
             variant="outline"
-            color={item.status === "Unread" ? "red" : "gray"}
+            color={isReviewed ? "gray" : "red"}
             size="xs"
-            disabled={item.status === "Read"} // Disable button for "Read" feedback
+            disabled={isReviewed}
           >
-            {item.status === "Unread" ? "Mark as Read" : "Read"}
+            {isReviewed ? "Reviewed" : "Mark as Reviewed"}
           </Button>
         </Table.Td>
       </Table.Tr>
-    ));
+      );
+    });
 
   const renderHeader = (titles) => {
     return titles.map((title, index) => (

@@ -18,6 +18,7 @@ import {
   getApiErrorMessage,
   updateRegistrationRequest,
 } from "../api";
+import { useSelector } from "react-redux";
 
 const tableHeaders = [
   "Student ID",
@@ -33,6 +34,9 @@ const tableHeaders = [
 ];
 
 function ViewRegistration() {
+  const role = useSelector((state) => state.user.role);
+  const canDecide = role === "mess_manager";
+
   const [registrationData, setRegistrationData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -69,6 +73,10 @@ function ViewRegistration() {
   }, []);
 
   const handleStatusChange = async (item, status) => {
+    if (!canDecide) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
@@ -216,6 +224,7 @@ function ViewRegistration() {
                             }
                             placeholder="Mess"
                             size="xs"
+                            disabled={!canDecide}
                           />
                         </Table.Td>
                         <Table.Td style={{ padding: "4px" }}>
@@ -229,27 +238,34 @@ function ViewRegistration() {
                             minRows={1}
                             maxRows={2}
                             size="xs"
+                            disabled={!canDecide}
                           />
                         </Table.Td>
                         <Table.Td style={{ padding: "4px", fontSize: "12px" }}>
                           {item.status || "N/A"}
                         </Table.Td>
                         <Table.Td style={{ padding: "4px" }}>
-                          <Button
-                            color="green"
-                            size="xs"
-                            onClick={() => handleStatusChange(item, "accept")}
-                            style={{ marginRight: "4px" }}
-                          >
-                            ✓
-                          </Button>
-                          <Button
-                            color="red"
-                            size="xs"
-                            onClick={() => handleStatusChange(item, "reject")}
-                          >
-                            ✗
-                          </Button>
+                          {canDecide ? (
+                            <>
+                              <Button
+                                color="green"
+                                size="xs"
+                                onClick={() => handleStatusChange(item, "accept")}
+                                style={{ marginRight: "4px" }}
+                              >
+                                ✓
+                              </Button>
+                              <Button
+                                color="red"
+                                size="xs"
+                                onClick={() => handleStatusChange(item, "reject")}
+                              >
+                                ✗
+                              </Button>
+                            </>
+                          ) : (
+                            "Monitor Only"
+                          )}
                         </Table.Td>
                       </Table.Tr>
                     ))

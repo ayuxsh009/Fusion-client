@@ -23,6 +23,14 @@ export const paymentRoute = `${host}${messRoute}/paymentsApi/`;
 export const getMessStatusRoute = `${host}${messRoute}/get_mess_balance_statusApi/`;
 export const announcementRoute = `${host}${messRoute}/announcementApi/`;
 export const adminMessManagementRoute = `${host}${messRoute}/adminMessManagementApi/`;
+export const messBillBaseRoute = `${host}${messRoute}/messBillBaseApi/`;
+export const updateBillExcelRoute = `${host}${messRoute}/updateBillExcelApi/`;
+export const refundRequestRoute = `${host}${messRoute}/refundRequestApi/`;
+export const refundLedgerRoute = `${host}${messRoute}/refundLedgerApi/`;
+export const specialEventMealRoute = `${host}${messRoute}/specialEventMealApi/`;
+export const roleAssignmentRoute = `${host}${messRoute}/roleAssignmentApi/`;
+export const auditComplianceRoute = `${host}${messRoute}/auditComplianceApi/`;
+export const feedbackReportRoute = `${host}${messRoute}/feedbackReportApi/`;
 
 // ---------------------------------------------------------------------------
 // Auth helper
@@ -319,6 +327,38 @@ export const deleteAnnouncement = (id, token) =>
 export const adminMessManagement = (payload, token) =>
   axios.post(adminMessManagementRoute, payload, withAuth(token));
 
+export const adminMessManagementBulkUpload = (file, messOption, token) => {
+  const formData = new FormData();
+  formData.append("action", "bulk_add");
+  formData.append("mess_option", messOption || "mess1");
+  formData.append("file", file);
+  return axios.post(
+    adminMessManagementRoute,
+    formData,
+    withAuth(token, { "Content-Type": "multipart/form-data" }),
+  );
+};
+
+export const fetchMessBillBase = (token) =>
+  axios.get(messBillBaseRoute, withAuth(token));
+
+export const updateMessBillBase = (billAmount, token) =>
+  axios.post(
+    messBillBaseRoute,
+    { bill_amount: Number(billAmount) },
+    withAuth(token),
+  );
+
+export const uploadBillExcel = (file, token) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return axios.post(
+    updateBillExcelRoute,
+    formData,
+    withAuth(token, { "Content-Type": "multipart/form-data" }),
+  );
+};
+
 export const menuPollRoute = `${host}${messRoute}/menuPollApi/`;
 
 export const fetchPolls = (token, params = {}) => {
@@ -395,3 +435,58 @@ export const submitRebateApplication = async (payload, authToken) => {
   );
   return { response, data };
 };
+
+export const fetchRefundRequests = (token) =>
+  axios.get(refundRequestRoute, withAuth(token));
+
+export const createRefundRequest = (payload, token) =>
+  axios.post(refundRequestRoute, payload, withAuth(token));
+
+export const decideRefundRequest = (payload, token) =>
+  axios.put(refundRequestRoute, payload, withAuth(token));
+
+export const cancelRefundRequest = (id, token) =>
+  axios.delete(refundRequestRoute, {
+    ...withAuth(token, { "Content-Type": "application/json" }),
+    data: { id },
+  });
+
+export const fetchRefundLedger = (token) =>
+  axios.get(refundLedgerRoute, withAuth(token));
+
+export const fetchSpecialEventMeals = (token, params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return axios.get(
+    query ? `${specialEventMealRoute}?${query}` : specialEventMealRoute,
+    withAuth(token),
+  );
+};
+
+export const createSpecialEventMeal = (payload, token) =>
+  axios.post(specialEventMealRoute, payload, withAuth(token));
+
+export const deleteSpecialEventMeal = (id, token) =>
+  axios.delete(specialEventMealRoute, {
+    ...withAuth(token, { "Content-Type": "application/json" }),
+    data: { id },
+  });
+
+export const fetchRoleAssignments = (token, params = {}) => {
+  const query = new URLSearchParams(params).toString();
+  return axios.get(
+    query ? `${roleAssignmentRoute}?${query}` : roleAssignmentRoute,
+    withAuth(token),
+  );
+};
+
+export const assignRole = (payload, token) =>
+  axios.post(roleAssignmentRoute, payload, withAuth(token));
+
+export const fetchAuditCompliance = (token) =>
+  axios.get(auditComplianceRoute, withAuth(token));
+
+export const fetchFeedbackReports = (token) =>
+  axios.get(feedbackReportRoute, withAuth(token));
+
+export const generateFeedbackReport = (token) =>
+  axios.post(feedbackReportRoute, {}, withAuth(token));

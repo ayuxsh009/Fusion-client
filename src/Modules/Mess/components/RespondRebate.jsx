@@ -1,9 +1,29 @@
 import React, { useState, useEffect } from "react";
 import { Table, Card, Button, TextInput, Flex, Text } from "@mantine/core";
 import * as PhosphorIcons from "@phosphor-icons/react";
+import { useSelector } from "react-redux";
 import { fetchRebateRequests, updateRebateRequest } from "../api";
 
+const normalizeStatus = (status) => {
+  const value = String(status ?? "").trim().toLowerCase();
+
+  if (["1", "pending"].includes(value)) return "1";
+  if (["2", "accept", "accepted", "approved"].includes(value)) return "2";
+  if (["0", "reject", "rejected", "declined"].includes(value)) return "0";
+
+  return "1";
+};
+
+const statusLabelFromCode = (statusCode) => {
+  if (statusCode === "2") return "Approved";
+  if (statusCode === "0") return "Declined";
+  return "Pending";
+};
+
 function RespondToRebateRequest() {
+  const role = useSelector((state) => state.user.role);
+  const canDecide = role === "mess_manager";
+
   const [rebateData, setRebateData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,13 +39,8 @@ function RespondToRebateRequest() {
         setRebateData(
           data.payload.map((item) => ({
             ...item,
-            statusText:
-              item.status === "2"
-                ? "Approved"
-                : item.status === "0"
-                  ? "Declined"
-                  : "Pending",
-            status: item.status || "1",
+            status: normalizeStatus(item.status),
+            statusText: statusLabelFromCode(normalizeStatus(item.status)),
             remark: item.rebate_remark || "",
           })),
         );
@@ -48,6 +63,10 @@ function RespondToRebateRequest() {
 
   // Update toggleApproval to use a unique identifier (id)
   const toggleApproval = async (id, newStatus) => {
+    if (!canDecide) {
+      return;
+    }
+
     const item = rebateData.find((r) => r.id === id);
     if (!item) return;
     const updatedRequest = {
@@ -98,7 +117,7 @@ function RespondToRebateRequest() {
         <Table.Td>{item.start_date}</Table.Td>
         <Table.Td>{item.end_date}</Table.Td>
         <Table.Td>
-          {item.status === "1" ? (
+          {item.status === "1" && canDecide ? (
             <TextInput
               placeholder="Enter remark"
               value={item.remark}
@@ -111,17 +130,21 @@ function RespondToRebateRequest() {
         <Table.Td>{item.statusText}</Table.Td>
         <Table.Td>
           {item.status === "1" ? (
-            <>
-              <Button
-                onClick={() => toggleApproval(item.id, "2")}
-                color="green"
-              >
-                Approve
-              </Button>
-              <Button onClick={() => toggleApproval(item.id, "0")} color="red">
-                Decline
-              </Button>
-            </>
+            canDecide ? (
+              <>
+                <Button
+                  onClick={() => toggleApproval(item.id, "2")}
+                  color="green"
+                >
+                  Approve
+                </Button>
+                <Button onClick={() => toggleApproval(item.id, "0")} color="red">
+                  Decline
+                </Button>
+              </>
+            ) : (
+              <Text>Monitor Only</Text>
+            )
           ) : (
             <Text>No Actions Available</Text>
           )}

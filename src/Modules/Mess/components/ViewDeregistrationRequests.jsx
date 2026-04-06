@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Table, Card, Text, Button, Flex, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { useSelector } from "react-redux";
 import {
   fetchDeregistrationRequests,
   getApiErrorMessage,
@@ -8,6 +9,9 @@ import {
 } from "../api";
 
 function ViewDeregistrationRequests() {
+  const role = useSelector((state) => state.user.role);
+  const canDecide = role === "mess_manager";
+
   const [deregistrationData, setDeregistrationData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -36,6 +40,10 @@ function ViewDeregistrationRequests() {
   }, []);
 
   const handleUpdate = async (index, newStatus) => {
+    if (!canDecide) {
+      return;
+    }
+
     try {
       const item = deregistrationData[index];
       const data = {
@@ -101,28 +109,37 @@ function ViewDeregistrationRequests() {
             value={item.remark}
             onChange={(e) => handleRemarkChange(index, e.target.value)}
             placeholder="Enter remark"
+            disabled={!canDecide}
           />
         </Table.Td>
         <Table.Td align="center" p={12}>
-          <Button
-            onClick={() => handleUpdate(index, "accept")}
-            variant="filled"
-            color="green"
-            size="xs"
-            disabled={item.status === "accept" || item.status === "reject"}
-            style={{ marginRight: "8px" }}
-          >
-            Accept
-          </Button>
-          <Button
-            onClick={() => handleUpdate(index, "reject")}
-            variant="filled"
-            color="red"
-            size="xs"
-            disabled={item.status === "accept" || item.status === "reject"}
-          >
-            Reject
-          </Button>
+          {canDecide ? (
+            <>
+              <Button
+                onClick={() => handleUpdate(index, "accept")}
+                variant="filled"
+                color="green"
+                size="xs"
+                disabled={item.status === "accept" || item.status === "reject"}
+                style={{ marginRight: "8px" }}
+              >
+                Accept
+              </Button>
+              <Button
+                onClick={() => handleUpdate(index, "reject")}
+                variant="filled"
+                color="red"
+                size="xs"
+                disabled={item.status === "accept" || item.status === "reject"}
+              >
+                Reject
+              </Button>
+            </>
+          ) : (
+            <Text size="sm" c="dimmed">
+              Monitor Only
+            </Text>
+          )}
         </Table.Td>
       </Table.Tr>
     ));

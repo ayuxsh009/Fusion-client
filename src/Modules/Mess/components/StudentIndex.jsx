@@ -14,6 +14,8 @@ import ViewBillandPayments from "./ViewBillAndPayments.jsx";
 import MessAnnouncements from "./MessAnnouncements.jsx";
 import MenuPollPage from "./MenuPollPage.jsx";
 import VacationSurveyPage from "./VacationSurveyPage.jsx";
+import RefundManagement from "./RefundManagement.jsx";
+import SpecialEventMeals from "./SpecialEventMeals.jsx";
 import { fetchStudentRegistrationStatus } from "../api";
 
 function Student() {
@@ -57,6 +59,16 @@ function Student() {
       title: "Vacation Survey",
       component: <VacationSurveyPage />,
     },
+    {
+      key: "refunds",
+      title: "Refunds",
+      component: <RefundManagement />,
+    },
+    {
+      key: "specialEvents",
+      title: "Special Event Meals",
+      component: <SpecialEventMeals />,
+    },
   ];
 
   useEffect(() => {
@@ -94,10 +106,15 @@ function Student() {
   });
 
   useEffect(() => {
-    if (filteredTabItems.length > 0 && !activeTab) {
+    if (filteredTabItems.length === 0) {
+      setActiveTab(null);
+      return;
+    }
+    const hasActiveTab = filteredTabItems.some((item) => item.key === activeTab);
+    if (!hasActiveTab) {
       setActiveTab(filteredTabItems[0].key);
     }
-  }, [filteredTabItems]);
+  }, [filteredTabItems, activeTab]);
 
   const handleTabChange = (direction) => {
     const currentIndex = filteredTabItems.findIndex(

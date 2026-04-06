@@ -115,8 +115,8 @@ function MessActivities() {
           radius="md"
           mt="md"
         >
-          Please ensure that the Excel file is named as{" "}
-          <b>"MessBillUpload.xlsx"</b> before uploading.
+          Upload an .xlsx/.xls file with these columns in order: Student ID,
+          Month, Year, Amount, Rebate Count, Rebate Amount, Total Amount.
         </Alert>
       )}
 

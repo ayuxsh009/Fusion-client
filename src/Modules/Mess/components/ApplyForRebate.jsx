@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { Button, Paper, TextInput, Textarea, Title } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { submitRebateApplication, getApiErrorMessage } from "../api";
+import PropTypes from "prop-types";
 
-function ApplyForRebate() {
+function ApplyForRebate({ onSubmitted }) {
   const [purpose, setPurpose] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -66,7 +67,18 @@ function ApplyForRebate() {
     };
     setLoading(true);
     try {
-      await submitRebateApplication(payload, token);
+      const result = await submitRebateApplication(payload, token);
+
+      // The rebate API may return business-rule failures with HTTP 200.
+      if (result?.data?.status && Number(result.data.status) !== 200) {
+        notifications.show({
+          title: "Error",
+          message: result.data.message || "Rebate request could not be submitted",
+          color: "red",
+        });
+        return;
+      }
+
       notifications.show({
         title: "Success",
         message: "Rebate application submitted",
@@ -75,6 +87,7 @@ function ApplyForRebate() {
       setPurpose("");
       setStartDate("");
       setEndDate("");
+      onSubmitted();
     } catch (err) {
       notifications.show({
         title: "Error",
@@ -127,5 +140,13 @@ function ApplyForRebate() {
     </Paper>
   );
 }
+
+ApplyForRebate.propTypes = {
+  onSubmitted: PropTypes.func,
+};
+
+ApplyForRebate.defaultProps = {
+  onSubmitted: () => {},
+};
 
 export default ApplyForRebate;

@@ -9,6 +9,7 @@ import {
   Alert,
   TextInput,
 } from "@mantine/core";
+import { useSelector } from "react-redux";
 import { fetchBalanceRequests, updateBalanceRequest } from "../api";
 
 const tableHeaders = [
@@ -22,6 +23,9 @@ const tableHeaders = [
 ];
 
 function ViewUpdatePaymentRequests() {
+  const role = useSelector((state) => state.user.role);
+  const canDecide = role === "mess_manager";
+
   const [updatePaymentData, setUpdatePaymentData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -57,6 +61,10 @@ function ViewUpdatePaymentRequests() {
   }, []);
 
   const handleStatusUpdate = async (id, status) => {
+    if (!canDecide) {
+      return;
+    }
+
     try {
       const token = localStorage.getItem("authToken");
       const item = updatePaymentData.find((items) => items.id === id);
@@ -139,24 +147,33 @@ function ViewUpdatePaymentRequests() {
                         }
                         placeholder="Enter remark"
                         size="xs"
+                        disabled={!canDecide}
                       />
                     </Table.Td>
                     <Table.Td>
-                      <Button
-                        color="green"
-                        size="xs"
-                        onClick={() => handleStatusUpdate(item.id, "accept")}
-                        style={{ marginRight: "8px" }}
-                      >
-                        Accept
-                      </Button>
-                      <Button
-                        color="red"
-                        size="xs"
-                        onClick={() => handleStatusUpdate(item.id, "reject")}
-                      >
-                        Reject
-                      </Button>
+                      {canDecide ? (
+                        <>
+                          <Button
+                            color="green"
+                            size="xs"
+                            onClick={() => handleStatusUpdate(item.id, "accept")}
+                            style={{ marginRight: "8px" }}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            color="red"
+                            size="xs"
+                            onClick={() => handleStatusUpdate(item.id, "reject")}
+                          >
+                            Reject
+                          </Button>
+                        </>
+                      ) : (
+                        <Text size="sm" c="dimmed">
+                          Monitor Only
+                        </Text>
+                      )}
                     </Table.Td>
                   </Table.Tr>
                 ))

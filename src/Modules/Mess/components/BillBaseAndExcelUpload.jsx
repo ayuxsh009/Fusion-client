@@ -1,43 +1,144 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
 import {
-  TextInput,
+  NumberInput,
   Button,
   Card,
   Text,
   FileInput,
   Grid,
   Space,
+  Flex,
+  Loader,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import {
+  fetchMessBillBase,
+  getApiErrorMessage,
+  updateMessBillBase,
+  uploadBillExcel,
+} from "../api";
 
 function BillBase() {
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(0);
   const [file, setFile] = useState(null);
+  const [loadingBase, setLoadingBase] = useState(true);
+  const [updatingBase, setUpdatingBase] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const authToken = localStorage.getItem("authToken");
 
-  const updateBaseAmount = (event) => {
-    event.preventDefault();
-    notifications.show({
-      title: "Success",
-      message: `Updated base amount to: Rs. ${amount}`,
-      color: "green",
-    });
-  };
+  useEffect(() => {
+    const loadBaseAmount = async () => {
+      if (!authToken) {
+        setLoadingBase(false);
+        return;
+      }
 
-  const uploadFile = (event) => {
+      try {
+        const response = await fetchMessBillBase(authToken);
+        const records = response.data?.payload || [];
+        if (records.length > 0) {
+          const latest = [...records].sort(
+            (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
+          )[0];
+          setAmount(Number(latest.bill_amount) || 0);
+        }
+      } catch (error) {
+        notifications.show({
+          title: "Error",
+          message: getApiErrorMessage(error, "Failed to load current bill base."),
+          color: "red",
+        });
+      } finally {
+        setLoadingBase(false);
+      }
+    };
+
+    loadBaseAmount();
+  }, [authToken]);
+
+  const updateBaseAmount = async (event) => {
     event.preventDefault();
-    if (file) {
+
+    if (amount === "" || Number(amount) < 0) {
+      notifications.show({
+        title: "Validation Error",
+        message: "Base amount must be a non-negative number.",
+        color: "red",
+      });
+      return;
+    }
+
+    setUpdatingBase(true);
+    try {
+      await updateMessBillBase(amount, authToken);
       notifications.show({
         title: "Success",
-        message: `File uploaded: ${file.name}`,
+        message: `Updated base amount to Rs. ${amount}.`,
         color: "green",
       });
-    } else {
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(error, "Failed to update base amount."),
+        color: "red",
+      });
+    } finally {
+      setUpdatingBase(false);
+    }
+  };
+
+  const uploadFile = async (event) => {
+    event.preventDefault();
+
+    if (!file) {
       notifications.show({
         title: "Error",
         message: "Please select a file to upload.",
         color: "red",
       });
+      return;
     }
+
+    setUploading(true);
+    try {
+      const response = await uploadBillExcel(file, authToken);
+      notifications.show({
+        title: "Success",
+        message:
+          response.data?.message ||
+          `File uploaded and processed successfully: ${file.name}`,
+        color: "green",
+      });
+      setFile(null);
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(error, "Failed to upload bill Excel file."),
+        color: "red",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const downloadBillTemplate = () => {
+    const rows = [
+      [
+        "Student ID",
+        "Month",
+        "Year",
+        "Amount",
+        "Rebate Count",
+        "Rebate Amount",
+        "Total Amount",
+      ],
+      ["B22CS001", "April", new Date().getFullYear(), 4500, 2, 50, 4400],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "MonthlyBills");
+    XLSX.writeFile(workbook, "mess_monthly_bill_template.xlsx");
   };
 
   return (
@@ -45,23 +146,30 @@ function BillBase() {
       <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
         Monthly Bill Base
       </Text>
+
+      {loadingBase && (
+        <Flex justify="center" align="center" mb="md">
+          <Loader size="sm" />
+        </Flex>
+      )}
+
       {/* Update Base Amount Form */}
       <form onSubmit={updateBaseAmount}>
         <Grid align="flex-end">
           <Grid.Col span={8}>
-            <TextInput
+            <NumberInput
               label="Current Base Amount"
               placeholder="Enter the new base amount"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              type="number"
+              onChange={setAmount}
               required
               radius="md"
               size="md"
+              min={0}
             />
           </Grid.Col>
           <Grid.Col span={4}>
-            <Button type="submit" color="blue">
+            <Button type="submit" color="blue" loading={updatingBase}>
               Update Base Amount
             </Button>
           </Grid.Col>
@@ -86,9 +194,19 @@ function BillBase() {
             />
           </Grid.Col>
           <Grid.Col span={4}>
-            <Button type="submit" color="blue">
-              Update Bills
-            </Button>
+            <Flex gap="sm" justify="flex-end" wrap="wrap">
+              <Button
+                type="button"
+                variant="outline"
+                color="teal"
+                onClick={downloadBillTemplate}
+              >
+                Download Template
+              </Button>
+              <Button type="submit" color="blue" loading={uploading}>
+                Update Bills
+              </Button>
+            </Flex>
           </Grid.Col>
         </Grid>
       </form>

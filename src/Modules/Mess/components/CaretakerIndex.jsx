@@ -23,6 +23,9 @@ import ViewMenu from "./ViewMenu.jsx";
 import MessAnnouncements from "./MessAnnouncements.jsx";
 import MenuPollPage from "./MenuPollPage.jsx";
 import VacationSurveyPage from "./VacationSurveyPage.jsx";
+import RefundManagement from "./RefundManagement.jsx";
+import SpecialEventMeals from "./SpecialEventMeals.jsx";
+import AuditComplianceDashboard from "./AuditComplianceDashboard.jsx";
 
 function Caretaker() {
   const [activeTab, setActiveTab] = useState("0");
@@ -30,9 +33,9 @@ function Caretaker() {
 
   const tabItems = [
     { title: "View Feedback" },
-    { title: "Respond to Rebate" },
-    { title: "Requests" },
-    { title: "View Special Food Requests" },
+    { title: "Requests " },
+    { title: "Rebate Requests " },
+    { title: "Special Food Requests " },
     { title: "View Menu" },
     { title: "Mess Activities" },
     { title: "Mess Registrations" },
@@ -41,6 +44,9 @@ function Caretaker() {
     { title: "Announcements" },
     { title: "Menu Poll" },
     { title: "Vacation Survey" },
+    { title: "Refund Management" },
+    { title: "Special Event Meals" },
+    { title: "Audit & Compliance" },
   ];
 
   const handleTabChange = (direction) => {
@@ -61,9 +67,9 @@ function Caretaker() {
       case "0":
         return <ViewFeedback />;
       case "1":
-        return <RespondToRebateRequest />;
-      case "2":
         return <RegDeregUpdatePayment />;
+      case "2":
+        return <RespondToRebateRequest />;
       case "3":
         return <ViewSpecialFoodRequest />;
       case "4":
@@ -82,6 +88,12 @@ function Caretaker() {
         return <MenuPollPage />;
       case "11":
         return <VacationSurveyPage />;
+      case "12":
+        return <RefundManagement />;
+      case "13":
+        return <SpecialEventMeals />;
+      case "14":
+        return <AuditComplianceDashboard />;
       default:
         return <Loader />;
     }

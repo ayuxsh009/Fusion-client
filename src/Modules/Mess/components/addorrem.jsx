@@ -1,4 +1,5 @@
 import { useState } from "react";
+import * as XLSX from "xlsx";
 import {
   Alert,
   Button,
@@ -20,6 +21,7 @@ import {
 import {
   fetchStudentRegistrationStatus,
   adminMessManagement,
+  adminMessManagementBulkUpload,
   getApiErrorMessage,
 } from "../api";
 
@@ -31,6 +33,7 @@ function ManageMess() {
   const [studentInfo, setStudentInfo] = useState(null);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const token = localStorage.getItem("authToken");
 
@@ -151,6 +154,65 @@ function ManageMess() {
     }
   };
 
+  const downloadBulkRegistrationTemplate = () => {
+    const rows = [
+      ["Roll no", "Balance", "mess_option"],
+      ["B22CS001", 0, "mess1"],
+      ["B22CS002", 1000, "mess2"],
+    ];
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "BulkRegistration");
+    XLSX.writeFile(workbook, "mess_bulk_registration_template.xlsx");
+  };
+
+  const handleBulkRegister = async () => {
+    if (!excelFile) {
+      notifications.show({
+        title: "Required",
+        message: "Please choose an Excel file first.",
+        color: "orange",
+      });
+      return;
+    }
+
+    setBulkLoading(true);
+    try {
+      const res = await adminMessManagementBulkUpload(excelFile, mess, token);
+      const payload = res.data?.payload || {};
+      const successCount = Number(payload.success_count || 0);
+      const failedCount = Number(payload.failed_count || 0);
+      const failures = payload.failures || [];
+
+      notifications.show({
+        title: "Bulk Registration Completed",
+        message: `Success: ${successCount}, Failed: ${failedCount}`,
+        color: failedCount > 0 ? "yellow" : "green",
+      });
+
+      if (failedCount > 0 && failures.length > 0) {
+        const preview = failures
+          .slice(0, 3)
+          .map((item) => `Row ${item.row}: ${item.reason}`)
+          .join(" | ");
+        notifications.show({
+          title: "Some rows failed",
+          message: preview,
+          color: "orange",
+        });
+      }
+      setExcelFile(null);
+    } catch (err) {
+      notifications.show({
+        title: "Error",
+        message: getApiErrorMessage(err, "Failed to register students from Excel."),
+        color: "red",
+      });
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   return (
     <Card shadow="sm" p="lg" radius="md" withBorder>
       <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
@@ -252,16 +314,22 @@ function ManageMess() {
         />
 
         <Button
+          type="button"
+          variant="outline"
+          color="teal"
+          fullWidth
+          mb="md"
+          onClick={downloadBulkRegistrationTemplate}
+        >
+          Download Bulk Template
+        </Button>
+
+        <Button
           leftSection={<FileArrowUp size={18} />}
           fullWidth
           color="blue"
-          onClick={() => {
-            notifications.show({
-              title: "Info",
-              message: "Excel bulk registration not yet implemented.",
-              color: "blue",
-            });
-          }}
+          loading={bulkLoading}
+          onClick={handleBulkRegister}
         >
           Register All
         </Button>
