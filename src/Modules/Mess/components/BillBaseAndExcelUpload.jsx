@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import * as XLSX from "xlsx";
 import {
   NumberInput,
   Button,
@@ -36,7 +35,7 @@ function BillBase() {
 
       try {
         const response = await fetchMessBillBase(authToken);
-        const records = response.data?.payload || [];
+        const records = response?.data?.payload || [];
         if (records.length > 0) {
           const latest = [...records].sort(
             (a, b) => new Date(b.timestamp) - new Date(a.timestamp),
@@ -46,7 +45,10 @@ function BillBase() {
       } catch (error) {
         notifications.show({
           title: "Error",
-          message: getApiErrorMessage(error, "Failed to load current bill base."),
+          message: getApiErrorMessage(
+            error,
+            "Failed to load current bill base.",
+          ),
           color: "red",
         });
       } finally {
@@ -60,7 +62,7 @@ function BillBase() {
   const updateBaseAmount = async (event) => {
     event.preventDefault();
 
-    if (amount === "" || Number(amount) < 0) {
+    if (!Number.isFinite(Number(amount)) || Number(amount) < 0) {
       notifications.show({
         title: "Validation Error",
         message: "Base amount must be a non-negative number.",
@@ -106,7 +108,7 @@ function BillBase() {
       notifications.show({
         title: "Success",
         message:
-          response.data?.message ||
+          response?.data?.message ||
           `File uploaded and processed successfully: ${file.name}`,
         color: "green",
       });
@@ -122,31 +124,11 @@ function BillBase() {
     }
   };
 
-  const downloadBillTemplate = () => {
-    const rows = [
-      [
-        "Student ID",
-        "Month",
-        "Year",
-        "Amount",
-        "Rebate Count",
-        "Rebate Amount",
-        "Total Amount",
-      ],
-      ["B22CS001", "April", new Date().getFullYear(), 4500, 2, 50, 4400],
-    ];
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "MonthlyBills");
-    XLSX.writeFile(workbook, "mess_monthly_bill_template.xlsx");
-  };
-
   return (
     <Card shadow="sm" p="lg" radius="md" withBorder>
       <Text size="lg" fw={700} ta="center" mb="md" c="#3B82F6">
         Monthly Bill Base
       </Text>
-
       {loadingBase && (
         <Flex justify="center" align="center" mb="md">
           <Loader size="sm" />
@@ -161,7 +143,7 @@ function BillBase() {
               label="Current Base Amount"
               placeholder="Enter the new base amount"
               value={amount}
-              onChange={setAmount}
+              onChange={(value) => setAmount(value ?? 0)}
               required
               radius="md"
               size="md"
@@ -194,19 +176,9 @@ function BillBase() {
             />
           </Grid.Col>
           <Grid.Col span={4}>
-            <Flex gap="sm" justify="flex-end" wrap="wrap">
-              <Button
-                type="button"
-                variant="outline"
-                color="teal"
-                onClick={downloadBillTemplate}
-              >
-                Download Template
-              </Button>
-              <Button type="submit" color="blue" loading={uploading}>
-                Update Bills
-              </Button>
-            </Flex>
+            <Button type="submit" color="blue" loading={uploading}>
+              Update Bills
+            </Button>
           </Grid.Col>
         </Grid>
       </form>

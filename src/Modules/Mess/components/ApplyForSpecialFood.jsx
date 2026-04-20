@@ -10,11 +10,7 @@ import {
   Textarea,
 } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import {
-  submitSpecialFoodRequest,
-  getApiErrorMessage,
-  getApiPayloadMessage,
-} from "../api";
+import { submitSpecialFoodRequest, getApiErrorMessage } from "../api";
 
 function ApplyForSpecialFood() {
   const [food, setFood] = useState("");
@@ -62,8 +58,7 @@ function ApplyForSpecialFood() {
     try {
       const response = await submitSpecialFoodRequest(requestData, authToken);
 
-      const apiStatus = Number(response?.data?.status || response.status || 0);
-      if (apiStatus === 200) {
+      if (response.status === 200) {
         notifications.show({
           title: "Success",
           message: "Special food request submitted successfully!",
@@ -77,20 +72,14 @@ function ApplyForSpecialFood() {
       } else {
         notifications.show({
           title: "Error",
-          message: getApiPayloadMessage(
-            response?.data,
-            "Unable to submit special food request.",
-          ),
+          message: response.data.message || "Submission failed.",
           color: "red",
         });
       }
     } catch (error) {
       notifications.show({
         title: "Error",
-        message: getApiErrorMessage(
-          error,
-          "Unable to submit special food request.",
-        ),
+        message: getApiErrorMessage(error, "Submission failed."),
         color: "red",
       });
     }

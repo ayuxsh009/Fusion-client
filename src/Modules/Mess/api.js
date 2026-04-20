@@ -17,6 +17,7 @@ export const specialFoodRequestRoute = `${host}${messRoute}/specialRequestApi/`;
 export const feedbackRoute = `${host}${messRoute}/feedbackApi/`;
 export const deregistrationRequestRoute = `${host}${messRoute}/deRegistrationRequestApi/`;
 export const viewBillsRoute = `${host}${messRoute}/get_student_bill/`;
+export const viewStudentPaymentsRoute = `${host}${messRoute}/get_student_payment/`;
 export const rebateRoute = `${host}${messRoute}/rebateApi/`;
 export const registrationRequestRoute = `${host}${messRoute}/registrationRequestApi/`;
 export const paymentRoute = `${host}${messRoute}/paymentsApi/`;
@@ -121,10 +122,7 @@ const extractFirstReadableMessage = (value, depth = 0) => {
   return "";
 };
 
-export const getApiPayloadMessage = (
-  data,
-  fallback = "Operation failed.",
-) => {
+export const getApiPayloadMessage = (data, fallback = "Operation failed.") => {
   if (!data) {
     return fallback;
   }
@@ -183,7 +181,7 @@ export const getApiErrorMessage = (
     }
 
     if (error.response?.status) {
-      const status = error.response.status;
+      const { status } = error.response;
       const statusText = error.response.statusText || "";
       return statusText
         ? `Request failed (${status} ${statusText}).`
@@ -327,6 +325,13 @@ export const updateSemesterDates = (payload, token) =>
 export const fetchStudentBills = (studentId, token) =>
   axios.post(
     viewBillsRoute,
+    { student_id: studentId },
+    withAuth(token, { "Content-Type": "application/json" }),
+  );
+
+export const fetchStudentPaymentsByStudent = (studentId, token) =>
+  axios.post(
+    viewStudentPaymentsRoute,
     { student_id: studentId },
     withAuth(token, { "Content-Type": "application/json" }),
   );

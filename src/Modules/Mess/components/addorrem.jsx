@@ -1,5 +1,4 @@
 import { useState } from "react";
-import * as XLSX from "xlsx";
 import {
   Alert,
   Button,
@@ -78,7 +77,7 @@ function ManageMess() {
           action: "add",
           student_id: rollNo.trim(),
           mess_option: mess,
-          amount: parseInt(amount) || 0,
+          amount: parseInt(amount, 10) || 0,
         },
         token,
       );
@@ -154,18 +153,6 @@ function ManageMess() {
     }
   };
 
-  const downloadBulkRegistrationTemplate = () => {
-    const rows = [
-      ["Roll no", "Balance", "mess_option"],
-      ["B22CS001", 0, "mess1"],
-      ["B22CS002", 1000, "mess2"],
-    ];
-    const worksheet = XLSX.utils.aoa_to_sheet(rows);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "BulkRegistration");
-    XLSX.writeFile(workbook, "mess_bulk_registration_template.xlsx");
-  };
-
   const handleBulkRegister = async () => {
     if (!excelFile) {
       notifications.show({
@@ -179,7 +166,7 @@ function ManageMess() {
     setBulkLoading(true);
     try {
       const res = await adminMessManagementBulkUpload(excelFile, mess, token);
-      const payload = res.data?.payload || {};
+      const payload = res?.data?.payload || {};
       const successCount = Number(payload.success_count || 0);
       const failedCount = Number(payload.failed_count || 0);
       const failures = payload.failures || [];
@@ -205,7 +192,10 @@ function ManageMess() {
     } catch (err) {
       notifications.show({
         title: "Error",
-        message: getApiErrorMessage(err, "Failed to register students from Excel."),
+        message: getApiErrorMessage(
+          err,
+          "Failed to register students from Excel.",
+        ),
         color: "red",
       });
     } finally {
@@ -312,17 +302,6 @@ function ManageMess() {
           leftSection={<FileArrowUp size={18} />}
           mb="md"
         />
-
-        <Button
-          type="button"
-          variant="outline"
-          color="teal"
-          fullWidth
-          mb="md"
-          onClick={downloadBulkRegistrationTemplate}
-        >
-          Download Bulk Template
-        </Button>
 
         <Button
           leftSection={<FileArrowUp size={18} />}

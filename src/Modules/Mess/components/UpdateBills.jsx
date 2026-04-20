@@ -16,22 +16,43 @@ import { getApiErrorMessage } from "../api";
 
 function UpdateBill() {
   const [rollNo, setRollNo] = useState("");
-  const [newAmount, setNewAmount] = useState("");
+  const [baseRate, setBaseRate] = useState(0);
+  const [specialCharges, setSpecialCharges] = useState(0);
+  const [previousBalance, setPreviousBalance] = useState(0);
   const [month, setMonth] = useState(null);
   const [year, setYear] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const monthToNumber = {
+    January: "01",
+    February: "02",
+    March: "03",
+    April: "04",
+    May: "05",
+    June: "06",
+    July: "07",
+    August: "08",
+    September: "09",
+    October: "10",
+    November: "11",
+    December: "12",
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!rollNo || !newAmount || !month || !year) {
+    if (!rollNo || !month || !year || Number(baseRate) < 0) {
       notifications.show({
         title: "Validation Error",
-        message: "All fields are required",
+        message:
+          "Roll number, month, year and base rate are required. Values cannot be negative.",
         color: "red",
       });
       return;
     }
+
+    const monthNo = monthToNumber[month];
+    const billingMonth = `${year}-${monthNo}`;
 
     setLoading(true);
     try {
@@ -40,9 +61,10 @@ function UpdateBill() {
         `${host}/mess/api/monthlyBillApi/`,
         {
           student_id: rollNo.toUpperCase(),
-          month,
-          year,
-          amount: newAmount,
+          billing_month: billingMonth,
+          base_rate: Number(baseRate) || 0,
+          special_charges: Number(specialCharges) || 0,
+          previous_balance: Number(previousBalance) || 0,
         },
         {
           headers: {
@@ -52,13 +74,16 @@ function UpdateBill() {
       );
 
       if (response.status === 200) {
+        const summary = response?.data?.payload || {};
         notifications.show({
           title: "Success",
-          message: "Bill updated successfully",
+          message: `Bill updated. Rebate days: ${summary.rebate_days ?? 0}, Total: ₹${summary.total_bill ?? 0}`,
           color: "green",
         });
         setRollNo("");
-        setNewAmount("");
+        setBaseRate(0);
+        setSpecialCharges(0);
+        setPreviousBalance(0);
         setMonth(null);
         setYear(null);
       }
@@ -100,18 +125,18 @@ function UpdateBill() {
         />
 
         <Grid grow>
-          {/* New Amount input (left side of the grid) */}
+          {/* Base rate input (left side of the grid) */}
           <Grid.Col span={6}>
             <NumberInput
-              label="New Amount"
-              placeholder="New amount for this month's bill"
-              value={newAmount}
-              onChange={setNewAmount}
+              label="Base Rate (per day)"
+              placeholder="Enter daily base rate"
+              value={baseRate}
+              onChange={(value) => setBaseRate(value ?? 0)}
               required
               radius="md"
               size="md"
               min={0}
-              step={100}
+              step={1}
               mb="lg"
             />
           </Grid.Col>
@@ -141,6 +166,35 @@ function UpdateBill() {
                 { value: "November", label: "November" },
                 { value: "December", label: "December" },
               ]}
+              mb="lg"
+            />
+          </Grid.Col>
+        </Grid>
+
+        <Grid grow>
+          <Grid.Col span={6}>
+            <NumberInput
+              label="Special Charges"
+              placeholder="Optional special charges"
+              value={specialCharges}
+              onChange={(value) => setSpecialCharges(value ?? 0)}
+              radius="md"
+              size="md"
+              min={0}
+              step={1}
+              mb="lg"
+            />
+          </Grid.Col>
+          <Grid.Col span={6}>
+            <NumberInput
+              label="Previous Balance"
+              placeholder="Optional previous balance"
+              value={previousBalance}
+              onChange={(value) => setPreviousBalance(value ?? 0)}
+              radius="md"
+              size="md"
+              min={0}
+              step={1}
               mb="lg"
             />
           </Grid.Col>
